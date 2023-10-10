@@ -96,38 +96,38 @@ const router = Router();
 // Articles Routes //
 
 router.get("/", auth, getallArticle);
-router.post("/create-article", [auth,mlMiddlewareMultiples.single("file")], createArticle);
+// router.post("/create-article", [auth,mlMiddlewareMultiples.single("file")], createArticle);
 router.put("/:id", auth, updateArticle);
 router.delete("/:id", auth, deleteArticle);
 
 // Jobs Routes //
 
 router.get("/jobs", auth, getallJob);
-router.post(
-  "/create-job",
-  [auth, mlMiddlewareMultiples.single("file")],
-  createJob
-);
+// router.post(
+//   "/create-job",
+//   [auth, mlMiddlewareMultiples.single("file")],
+//   createJob
+// );
 router.put("/update-job/:id", auth, updateJob);
 router.delete("/delete-job/:id", auth, deleteJob);
 
 // Issue Routes //
 router.get("/issues", auth, getallIssue);
-router.post(
-  "/create-issue",
-  [auth, mlMiddlewareMultiples.single("file")],
-  createIssue
-);
+// router.post(
+//   "/create-issue",
+//   [auth, mlMiddlewareMultiples.single("file")],
+//   createIssue
+// );
 router.put("/update-issue/:id", auth, updateIssue);
 router.delete("/delete-issue/:id", auth, deleteIssue);
 
 // Learn Routes //
 router.get("/learn", auth, getallLearn);
-router.post(
-  "/create-learn",
-  [auth, mlMiddlewareVideoUpload.single("file")],
-  createLearn
-);
+// router.post(
+//   "/create-learn",
+//   [auth, mlMiddlewareVideoUpload.single("file")],
+//   createLearn
+// );
 router.put("/update-learn/:id", auth, updateLearn);
 router.delete("/delete-learn/:id", auth, deleteLearn);
 
