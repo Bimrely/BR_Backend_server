@@ -1,5 +1,5 @@
 import { Router } from "express";
-import multer from "multer";
+// import multer from "multer";
 import {
   getallArticle,
   createArticle,
@@ -44,54 +44,54 @@ import path from "path";
 
 const router = Router();
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join("./uploads/"));
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
-  },
-});
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, path.join("./uploads/"));
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, file.originalname);
+//   },
+// });
 
-const mlMiddlewareMultiples = multer({
-  storage,
-  limits: { fileSize: 1 * 1024 * 1024 }, // 1MB
-  fileFilter: (req, file, cb) => {
-    if (
-      file.mimetype == "image/png" ||
-      file.mimetype == "image/jpg" ||
-      file.mimetype == "image/jpeg"
-    ) {
-      cb(null, true);
-    } else {
-      cb(null, false);
-      const err = new Error("Only .png, .jpg and .jpeg format allowed!");
-      err.name = "ExtensionError";
-      return cb(err);
-    }
-  },
-});
+// const mlMiddlewareMultiples = multer({
+//   storage,
+//   limits: { fileSize: 1 * 1024 * 1024 }, // 1MB
+//   fileFilter: (req, file, cb) => {
+//     if (
+//       file.mimetype == "image/png" ||
+//       file.mimetype == "image/jpg" ||
+//       file.mimetype == "image/jpeg"
+//     ) {
+//       cb(null, true);
+//     } else {
+//       cb(null, false);
+//       const err = new Error("Only .png, .jpg and .jpeg format allowed!");
+//       err.name = "ExtensionError";
+//       return cb(err);
+//     }
+//   },
+// });
 
-const mlMiddlewareVideoUpload = multer({
-  storage,
-  limits: { fileSize: 1000 * 1024 * 1024 }, // 1GB
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype == "video/mp4") {
-      cb(null, true);
-    } else {
-      cb(null, false);
-      const err = new Error("Only mp4 format allowed!");
-      err.name = "ExtensionError";
-      return cb(err);
-    }
-  },
-});
+// const mlMiddlewareVideoUpload = multer({
+//   storage,
+//   limits: { fileSize: 1000 * 1024 * 1024 }, // 1GB
+//   fileFilter: (req, file, cb) => {
+//     if (file.mimetype == "video/mp4") {
+//       cb(null, true);
+//     } else {
+//       cb(null, false);
+//       const err = new Error("Only mp4 format allowed!");
+//       err.name = "ExtensionError";
+//       return cb(err);
+//     }
+//   },
+// });
 
-const mlMiddleware = multer({
-  //storage: 100,//CourseFileStorage,
-  dest: "uploads/",
-  limits: { fieldSize: 25 * 1024 * 1024 },
-});
+// const mlMiddleware = multer({
+//   //storage: 100,//CourseFileStorage,
+//   dest: "uploads/",
+//   limits: { fieldSize: 25 * 1024 * 1024 },
+// });
 
 // Articles Routes //
 
