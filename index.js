@@ -4,7 +4,7 @@ import bodyParser from 'body-parser';
 import 'dotenv/config';
 import {connectDB} from './db.js'
 import routesForApp from './Routes.js';
-import session from 'express-session';
+// import session from 'express-session';
 // import passport from './middleware/googleAuth.js';
 import passport from './middleware/linkedInAuth.js';
 import { User } from './Models/userModel.js';
@@ -33,13 +33,13 @@ app.use((req, res, next) => {
 
 initialize(server);
 
-app.use(
-    session({
-      secret: 'YOUR_SESSION_SECRET',
-      resave: false,
-      saveUninitialized: false,
-    })
-  );
+// app.use(
+//     session({
+//       secret: 'YOUR_SESSION_SECRET',
+//       resave: false,
+//       saveUninitialized: false,
+//     })
+//   );
   // server.js
 
 // ... (existing code)
