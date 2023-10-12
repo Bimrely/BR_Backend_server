@@ -32,7 +32,8 @@ import {
   Videos,
   saveResult,
   searchLearnData,
-  searchLibaryData
+  searchLibaryData,
+  getRapidjobs
 
 
 } from "../PostControllers/postController.js";
@@ -197,9 +198,10 @@ router.get('/save' , saveResult);
 // Search for youtube videos //
 router.post('/search-learn/:query' , searchLearnData);
 
-// Search for youtube videos //
+// Search for library videos //
 router.post('/search-libary/:query' , searchLibaryData);
-
+// Search for jobs videos //
+router.get('/search-job/:query' , getRapidjobs);
 
 
 // Stripe Payment Routes //

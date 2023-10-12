@@ -958,7 +958,40 @@ export const deleteLearn = async (req, res) => {
 
 }
   
+export const getRapidjobs  = async(req,res)=>{
 
+  const searchTerm = req.query.term;
+
+
+
+  const response = await axios.get(`https://jsearch.p.rapidapi.com/search`, {
+    params: {
+      query: searchTerm,
+          page: '1',
+          num_pages: '20'
+     
+    },
+
+    headers: {
+      'X-RapidAPI-Key': 'e98e90d379mshe0700d7a1db3f40p17f022jsn8da99719078c',
+      'X-RapidAPI-Host': 'jsearch.p.rapidapi.com'
+    }
+  
+
+
+  });
+
+  const saveResults = response.data
+  
+  try {
+    res.json(saveResults);
+  } catch (error) {
+    console.error(error);
+  }
+
+
+  
+}
 
 
 
