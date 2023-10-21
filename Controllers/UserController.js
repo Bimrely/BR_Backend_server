@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 const SECRET_KEY = "SECRET";
 import { Profile } from "../Models/userprofile.js";
-import crypto from 'crypto';
+// import crypto from 'crypto';
 import nodemailer from 'nodemailer'
 
 
@@ -184,92 +184,92 @@ const transporter = nodemailer.createTransport({
 
 
 
-export const resetPassword = async(req,res)=>{
+// export const resetPassword = async(req,res)=>{
 
 
-  try {
-    const { email } = req.body;
+//   try {
+//     const { email } = req.body;
 
-    // Generate a unique reset token
-    const resetToken = crypto.randomBytes(20).toString('hex');
+//     // Generate a unique reset token
+//     const resetToken = crypto.randomBytes(20).toString('hex');
 
-    // Find the user by email
-    const user = await User.findOne({ email });
+//     // Find the user by email
+//     const user = await User.findOne({ email });
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+//     if (!user) {
+//       return res.status(404).json({ error: 'User not found' });
+//     }
 
-    // Update user's reset token and expiration time
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordTokenExpires = Date.now() + 3600000; // Token expires in 1 hour
+//     // Update user's reset token and expiration time
+//     user.resetPasswordToken = resetToken;
+//     user.resetPasswordTokenExpires = Date.now() + 3600000; // Token expires in 1 hour
 
-    await user.save();
+//     await user.save();
 
-    // Send the reset token to the user's email
-    const mailOptions = {
-      from: 'your-email@example.com', // Your email address
-      to: email,
-      subject: 'Password Reset Request',
-      text: `You are receiving this because you (or someone else) have requested a password reset for your account.\n\n` +
-        `Please click on the following link, or paste this into your browser to complete the process:\n\n` +
-        `http://your-app-url/reset-password/${resetToken}\n\n` +
-        `If you did not request this, please ignore this email and your password will remain unchanged.\n`,
-    };
+//     // Send the reset token to the user's email
+//     const mailOptions = {
+//       from: 'your-email@example.com', // Your email address
+//       to: email,
+//       subject: 'Password Reset Request',
+//       text: `You are receiving this because you (or someone else) have requested a password reset for your account.\n\n` +
+//         `Please click on the following link, or paste this into your browser to complete the process:\n\n` +
+//         `http://your-app-url/reset-password/${resetToken}\n\n` +
+//         `If you did not request this, please ignore this email and your password will remain unchanged.\n`,
+//     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Error sending password reset email:', error);
-        return res.status(500).json({ error: 'Internal server error' });
-      }
-      console.log('Password reset email sent:', info.response);
-      res.status(200).json({ message: 'Password reset email sent' });
-    });
-  } catch (error) {
-    console.error('Error sending password reset email:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+//     transporter.sendMail(mailOptions, (error, info) => {
+//       if (error) {
+//         console.error('Error sending password reset email:', error);
+//         return res.status(500).json({ error: 'Internal server error' });
+//       }
+//       console.log('Password reset email sent:', info.response);
+//       res.status(200).json({ message: 'Password reset email sent' });
+//     });
+//   } catch (error) {
+//     console.error('Error sending password reset email:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
 
-}
+// }
   
 
   
 
 
-export const setPassword =  async(req,res)=>{
+// export const setPassword =  async(req,res)=>{
 
 
-   try {
-    const {newPassword } = req.body;
-    const {token} = req.params
+//    try {
+//     const {newPassword } = req.body;
+//     const {token} = req.params
 
-    // Find the user by reset token and check if it's still valid
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordTokenExpires: { $gt: Date.now() },
-    });
+//     // Find the user by reset token and check if it's still valid
+//     const user = await User.findOne({
+//       resetPasswordToken: token,
+//       resetPasswordTokenExpires: { $gt: Date.now() },
+//     });
 
-    if (!user) {
-      return res.status(404).json({ error: 'Invalid or expired token' });
-    }
+//     if (!user) {
+//       return res.status(404).json({ error: 'Invalid or expired token' });
+//     }
 
-     // Hash the new password
-     const salt = await bcrypt.genSalt(10);
-     const hashedPassword = await bcrypt.hash(newPassword, salt);
+//      // Hash the new password
+//      const salt = await bcrypt.genSalt(10);
+//      const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-    // Update user's password and reset token fields
-    user.password = hashedPassword;
-    user.resetPasswordToken = null;
-    user.resetPasswordTokenExpires = null;
+//     // Update user's password and reset token fields
+//     user.password = hashedPassword;
+//     user.resetPasswordToken = null;
+//     user.resetPasswordTokenExpires = null;
 
-    await user.save();
+//     await user.save();
 
-    res.status(200).json({ message: 'Password reset successful' });
-  } catch (error) {
-    console.error('Error resetting password:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+//     res.status(200).json({ message: 'Password reset successful' });
+//   } catch (error) {
+//     console.error('Error resetting password:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
 
 
 
-}
+// }
