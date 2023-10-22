@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Signup, resetPassword, setPassword } from '../Controllers/UserController.js';
+import { Signup } from '../Controllers/UserController.js';
 import { SignIn } from '../Controllers/UserController.js';
 import {createUserProfile,editUserProfile}from '../Controllers/UserController.js';
 import {auth} from '../middleware/auth.js'
@@ -14,8 +14,8 @@ router.post('/register-user',Signup);
 router.post('/login-user',SignIn);
 router.post('/create-profile' ,auth,createUserProfile)
 router.put('/edit-profile' ,auth,editUserProfile)
-router.post('/forget-password', resetPassword)
-router.put('/set-password/:token', setPassword)
+// router.post('/forget-password', resetPassword)
+// router.put('/set-password/:token', setPassword)
 
 
 
