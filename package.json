@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "nodemon index.js",
-  
-    "build": "npm run build"
+    "build": "npm run build",
+    "deploy": "az webapp deployment source config-zip --resource-group bimrely_group --name Bimrely --src package.zip" 
   },
   "author": "",
   "license": "ISC",
