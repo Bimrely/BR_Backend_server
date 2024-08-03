@@ -1,5 +1,5 @@
 import { Router } from "express";
-import multer from "multer";
+// import multer from "multer";
 import {
   getallArticle,
   createArticle,
@@ -81,71 +81,71 @@ import { get } from "http";
 
 const router = Router();
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join("../bim_copy/src/images"));
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
-  },
-});
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, path.join("../bim_copy/src/images"));
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, file.originalname);
+//   },
+// });
 
-const mlMiddlewareMultiples = multer({
-  storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
-  fileFilter: (req, file, cb) => {
-    if (
-      file.mimetype == "image/png" ||
-      file.mimetype == "image/jpg" ||
-      file.mimetype == "image/jpeg"
-    ) {
-      cb(null, true);
-    } else {
-      cb(null, false);
-      const err = new Error("Only .png, .jpg and .jpeg format allowed!");
-      err.name = "ExtensionError";
-      return cb(err);
-    }
-  },
-});
+// const mlMiddlewareMultiples = multer({
+//   storage,
+//   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+//   fileFilter: (req, file, cb) => {
+//     if (
+//       file.mimetype == "image/png" ||
+//       file.mimetype == "image/jpg" ||
+//       file.mimetype == "image/jpeg"
+//     ) {
+//       cb(null, true);
+//     } else {
+//       cb(null, false);
+//       const err = new Error("Only .png, .jpg and .jpeg format allowed!");
+//       err.name = "ExtensionError";
+//       return cb(err);
+//     }
+//   },
+// });
 
-const mlMiddlewareVideoUpload = multer({
-  storage,
-  limits: { fileSize: 1000 * 1024 * 1024 }, // 1GB
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype == "video/mp4") {
-      cb(null, true);
-    } else {
-      cb(null, false);
-      const err = new Error("Only mp4 format allowed!");
-      err.name = "ExtensionError";
-      return cb(err);
-    }
-  },
-});
+// const mlMiddlewareVideoUpload = multer({
+//   storage,
+//   limits: { fileSize: 1000 * 1024 * 1024 }, // 1GB
+//   fileFilter: (req, file, cb) => {
+//     if (file.mimetype == "video/mp4") {
+//       cb(null, true);
+//     } else {
+//       cb(null, false);
+//       const err = new Error("Only mp4 format allowed!");
+//       err.name = "ExtensionError";
+//       return cb(err);
+//     }
+//   },
+// });
 
-const mlMiddleware = multer({
-  //storage: 100,//CourseFileStorage,
-  dest: "uploads/",
-  limits: { fieldSize: 25 * 1024 * 1024 },
-});
+// const mlMiddleware = multer({
+//   //storage: 100,//CourseFileStorage,
+//   dest: "uploads/",
+//   limits: { fieldSize: 25 * 1024 * 1024 },
+// });
 
 // Articles Routes //
 
 router.get("/get-article",auth,getallArticle);
-router.post("/create-article",auth,mlMiddlewareMultiples.single("file"), createArticle);
-router.put("/update-article/:id",auth,mlMiddlewareMultiples.single("file"),updateArticle);
+router.post("/create-article",auth, createArticle);
+router.put("/update-article/:id",auth,updateArticle);
 router.delete("/delete-article/:id",auth, deleteArticle);
 
 // Jobs Routes //
 
 router.get("/jobs", auth, getallJob);
-router.post("/create-job",[auth, mlMiddlewareMultiples.single("file")],createJob);
-router.put("/update-job/:id", auth, mlMiddlewareMultiples.single("file"), updateJob);
+router.post("/create-job",auth,createJob);
+router.put("/update-job/:id", auth, updateJob);
 router.delete("/delete-job/:id", auth, deleteJob);
 
 
-router.post('/jobs/:jobId/comment',auth,mlMiddlewareMultiples.single("file"), commentJob);
+router.post('/jobs/:jobId/comment',auth, commentJob);
 router.delete('/jobs/:jobId/:commentId/delete',auth,deleteCommentJob);
 router.put('/jobs/:jobId/:commentId/update',auth,updateCommentJob);
 router.put('/jobs/:jobId/comments/:commentId/like',auth,likeCommentJob);
@@ -176,9 +176,9 @@ router.post('/run-prompt', handleRunPrompt);
 router.get("/issues", auth, getallIssue);
 router.post(
   "/create-issue",
-  [auth, mlMiddlewareMultiples.single("file")],
+  auth,
   createIssue);
-router.put("/update-issue/:id", auth, mlMiddlewareMultiples.single("file"), updateIssue);
+router.put("/update-issue/:id", auth, updateIssue);
 router.delete("/delete-issue/:id",auth, deleteIssue);
 
 
@@ -200,10 +200,10 @@ router.delete("/delete-issue/:id",auth, deleteIssue);
 router.get("/learn", auth, getallLearn);
 router.post(
   "/create-learn",
-  [auth, mlMiddlewareVideoUpload.single("file")],
+  auth,
   createLearn
 );
-router.put("/update-learn/:id", auth, mlMiddlewareMultiples.single("file"), updateLearn);
+router.put("/update-learn/:id", auth, updateLearn);
 
 router.delete("/delete-learn/:id", auth, deleteLearn);
 
@@ -216,7 +216,7 @@ router.post('/learns/:learnId/share',auth, shareLearn);
 router.delete('/profiles/:userId/shared-learns/:learnId', auth, deleteSharedLearn);
 
 // Comment on an Learn
-router.post('/learns/:learnId/comment',auth,mlMiddlewareMultiples.single("file"),commentLearn);
+router.post('/learns/:learnId/comment',auth,commentLearn);
 // Comment on an article
 
 
@@ -273,7 +273,7 @@ router.delete('/profiles/:userId/shared-articles/:articleId', auth, deleteShared
 
 
 // Comment on an article
-router.post('/articles/:articleId/comment',auth,mlMiddlewareMultiples.single("file"), commentArticle);
+router.post('/articles/:articleId/comment',auth, commentArticle);
 
 // delete comment //
 
@@ -337,7 +337,7 @@ router.put('/issues/:issueId/:commentId/update',auth,updateCommentIssue);
 
 
 // Comment on an Issue
-router.post('/issues/:issueId/comment',auth,mlMiddlewareMultiples.single("file"), commentIssue);
+router.post('/issues/:issueId/comment',auth, commentIssue);
 
 
 
