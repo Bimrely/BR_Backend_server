@@ -3020,7 +3020,7 @@ function sleep(ms) {
 
 export const getallLearn = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query; // Default to page 1, limit 10
+    const { page = 1, limit = 100 } = req.query; // Default to page 1, limit 10
 
     const skip = (page - 1) * limit;
 
