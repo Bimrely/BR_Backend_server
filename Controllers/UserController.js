@@ -316,8 +316,8 @@ export const editUserProfile = async (req, res) => {
 
     console.log(req.body);
     // Check if experience and education arrays exist, if not, assign empty arrays
-    const updatedExperience = experience ? experience.map(exp => ({ ...exp, startDate: new Date.now(exp.startDate), endDate: new Date.now(exp.endDate) })) : [];
-    const updatedEducation = education ? education.map(edu => ({ ...edu, startDate: new Date.now(edu.startDate), endDate: new Date.now(edu.endDate) })) : [];
+    const updatedExperience = experience ? experience.map(exp => ({ ...exp, startDate: new Date.now((exp.startDate)), endDate: new Date.now((exp.endDate)) })) : [];
+    const updatedEducation = education ? education.map(edu => ({ ...edu, startDate: new Date.now((edu.startDate)), endDate: new Date.now((edu.endDate)) })) : [];
 
     const updatedProfile = await Profile.findByIdAndUpdate(profileId, {
       firstName,
