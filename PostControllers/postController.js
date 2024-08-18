@@ -1205,6 +1205,45 @@ export const deleteSharedArticle = async (req, res) => {
 
 
 
+export const uploadProfilePic = async (req, res) => {
+
+  try {
+    const profileId = req.params.id;
+
+    // Ensure a file was uploaded
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Get the uploaded file's path
+    const profilePictureUrl = `${req.file.filename}`;
+
+    // Update the user's profile with the new profile picture URL
+    const updatedProfile = await Profile.findByIdAndUpdate(
+      profileId,
+      { profilePicture: profilePictureUrl },
+      { new: true }
+    );
+
+    if (!updatedProfile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    res.status(200).json({
+      message: "Profile picture uploaded successfully",
+      profile: updatedProfile,
+    });
+  } catch (error) {
+    console.error("Error uploading profile picture:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+
+
+
+
 
 
 
@@ -3352,48 +3391,48 @@ export const getLibary = async (req, res) => {
 
 
 
-// export const fetchAndSaveJobs = async (req, res) => {
-//   const searchTerm = req.query.term;
-//   const location = req.query.location;
+export const fetchAndSaveJobs = async (req, res) => {
+  const searchTerm = req.query.term;
+  const location = req.query.location;
 
-//   try {
-//     const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
-//       params: {
-//         query: searchTerm,
-//         location: location,
-//         page: '1',
-//         num_pages: '1',
-//       },
-//       headers: {
-//         'X-RapidAPI-Key': '622e902bd8msh1139c0b10a4db77p1b98c8jsn7ff60b995272',
-//         'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
-//       },
+  try {
+    const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
+      params: {
+        query: searchTerm,
+        location: location,
+        page: '1',
+        num_pages: '1',
+      },
+      headers: {
+        'X-RapidAPI-Key': 'e98e90d379mshe0700d7a1db3f40p17f022jsn8da99719078c',
+        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
+      },
 
-//     });
+    });
 
-//     const jobs = response.data.data.map(job => ({
-//       job_id: job.id,
-//       job_title: job.job_title,
-//       employer_name: job.employer_name,
-//       employer_logo: job.employer_logo,
-//       job_city: job.job_city,
-//       job_country: job.job_country,
-//       job_posted_at_datetime_utc: job.job_posted_at_datetime_utc,
-//       job_max_salary: job.job_max_salary,
-//       job_publisher: job.job_publisher,
-//       job_employment_type: job.job_employment_type,
-//       job_description: job.job_description,
-//       job_apply_link: job.job_apply_link,
-//     }));
+    const jobs = response.data.data.map(job => ({
+      job_id: job.id,
+      job_title: job.job_title,
+      employer_name: job.employer_name,
+      employer_logo: job.employer_logo,
+      job_city: job.job_city,
+      job_country: job.job_country,
+      job_posted_at_datetime_utc: job.job_posted_at_datetime_utc,
+      job_max_salary: job.job_max_salary,
+      job_publisher: job.job_publisher,
+      job_employment_type: job.job_employment_type,
+      job_description: job.job_description,
+      job_apply_link: job.job_apply_link,
+    }));
 
-//     await JobApi.insertMany(jobs);
+    await JobApi.insertMany(jobs);
 
-//     res.status(200).json({ message: 'Jobs fetched and saved successfully'});
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: 'Error fetching and saving jobs', error });
-//   }
-// };
+    res.status(200).json({ message: 'Jobs fetched and saved successfully',jobs});
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching and saving jobs', error });
+  }
+};
 
 export const getAllApiJobs = async (req, res) => {
   try {
@@ -3464,7 +3503,7 @@ export const getRapidjobs  = async(req,res)=>{
     params: {
       query: searchTerm,
       location: location,
-          page: '1',
+          page: '20',
           num_pages: '20'
      
     },
