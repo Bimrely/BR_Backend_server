@@ -134,10 +134,15 @@ const mlMiddlewareMultiples = multer({
 
 // Articles Routes //
 
+
 router.get("/get-article",auth,getallArticle);
-router.post("/create-article",auth,createArticle);
-router.put("/update-article/:id",auth,updateArticle);
+router.post("/create-article",auth,mlMiddlewareMultiples.single("file"), createArticle);
+router.put("/update-article/:id",auth,mlMiddlewareMultiples.single("file"),updateArticle);
 router.delete("/delete-article/:id",auth, deleteArticle);
+// router.get("/get-article",auth,getallArticle);
+// router.post("/create-article",auth,createArticle);
+// router.put("/update-article/:id",auth,updateArticle);
+// router.delete("/delete-article/:id",auth, deleteArticle);
 
 // Jobs Routes //
 
