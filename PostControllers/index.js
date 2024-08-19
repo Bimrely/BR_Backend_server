@@ -1,5 +1,5 @@
 import { Router } from "express";
-// import multer from "multer";
+import multer from "multer";
 import {
   getallArticle,
   createArticle,
@@ -83,33 +83,33 @@ import { get } from "http";
 
 const router = Router();
 
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, path.join("../../client/WIP-Frontend/src/images"));
-//   },
-//   filename: function (req, file, cb) {
-//     cb(null, file.originalname);
-//   },
-// });
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join("../../client/WIP-Frontend/src/images"));
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname);
+  },
+});
 
-// const mlMiddlewareMultiples = multer({
-//   storage,
-//   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
-//   fileFilter: (req, file, cb) => {
-//     if (
-//       file.mimetype == "image/png" ||
-//       file.mimetype == "image/jpg" ||
-//       file.mimetype == "image/jpeg"
-//     ) {
-//       cb(null, true);
-//     } else {
-//       cb(null, false);
-//       const err = new Error("Only .png, .jpg and .jpeg format allowed!");
-//       err.name = "ExtensionError";
-//       return cb(err);
-//     }
-//   },
-// });
+const mlMiddlewareMultiples = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype == "image/png" ||
+      file.mimetype == "image/jpg" ||
+      file.mimetype == "image/jpeg"
+    ) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+      const err = new Error("Only .png, .jpg and .jpeg format allowed!");
+      err.name = "ExtensionError";
+      return cb(err);
+    }
+  },
+});
 
 // const mlMiddlewareVideoUpload = multer({
 //   storage,
@@ -164,7 +164,7 @@ router.delete('/profiles/:userId/shared-jobs/:jobId', auth, deleteSharedJob);
 
 
 
-// router.post('/profile/upload-picture/:id',auth,mlMiddlewareMultiples.single("file"),uploadProfilePic)
+router.post('/profile/upload-picture/:id',auth,mlMiddlewareMultiples.single("file"),uploadProfilePic)
 
 
 
