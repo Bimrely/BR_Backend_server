@@ -69,7 +69,8 @@ import {
   getLocationSuggestions,
   getRapidjobs,
   fetchAndSaveJobs,
-  uploadProfilePic
+  uploadProfilePic,
+  getAllapi
 
 
 
@@ -359,6 +360,7 @@ router.post('/issues/:issueId/comment',auth, commentIssue);
 
 
 
+router.get('/getJobs-api' ,auth,getAllapi);
 
 // get youtube videos //
 

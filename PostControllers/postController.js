@@ -3390,6 +3390,17 @@ export const getLibary = async (req, res) => {
   
 
 
+export const getAllapi = async(req,res)=>{
+
+  const jobapis = await JobApi.find();
+
+    res.status(200).json({
+      jobapis,
+    });
+  
+}
+
+
 
 export const fetchAndSaveJobs = async (req, res) => {
   const searchTerm = req.query.term;
