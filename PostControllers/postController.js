@@ -3391,13 +3391,32 @@ export const getLibary = async (req, res) => {
 
 
 export const getAllapi = async(req,res)=>{
+  try {
+    const { page = 1, limit = 10 } = req.query; // Default to page 1, limit 10
 
-  const jobapis = await JobApi.find();
+    const skip = (page - 1) * limit;
+
+    // Get total count of documents
+    const totalItems = await JobApi.countDocuments();
+
+    // Fetch paginated data
+    const jobapi = await JobApi.find()
+      .skip(skip)
+      .limit(Number(limit));
+
+    const totalPages = Math.ceil(totalItems / limit);
 
     res.status(200).json({
-      jobapis,
+      jobapi,
+      totalItems,
+      totalPages,
+      currentPage: Number(page),
     });
-  
+  } catch (error) {
+    console.error('Error fetching articles:', error);
+    res.status(500).json({ message: 'An error occurred while fetching the articles.', error: error.message });
+  }
+
 }
 
 
