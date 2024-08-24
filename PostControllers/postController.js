@@ -3447,15 +3447,21 @@ export const getAllApiJobs = async (req, res) => {
 
 
 export const searchJobsInDB = async (req, res) => {
-  const { term, location } = req.query;
+  const { term, location , country } = req.query;
 
   try {
     const query = {
       job_title: { $regex: term, $options: 'i' },
+      // job_country: { $regex: country, $options: 'i' },
     };
 
     if (location) {
       query.job_city = { $regex: location, $options: 'i' };
+    }
+
+    
+    if (country) {
+      query.job_country = { $regex: country, $options: 'i' };
     }
 
     console.log('Query:', JSON.stringify(query, null, 2)); // Log the query for debugging
