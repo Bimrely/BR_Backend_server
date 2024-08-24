@@ -3447,28 +3447,57 @@ export const getAllApiJobs = async (req, res) => {
 
 
 export const searchJobsInDB = async (req, res) => {
-  const { term, location } = req.query;
+  
+  
+  const { city, country } = req.query;
+
+  // Create a search query object
+  const searchQuery = {};
+
+  if (city) {
+    searchQuery.city = { $regex: city, $options: 'i' }; // 'i' for case-insensitive search
+  }
+
+  if (country) {
+    searchQuery.country = { $regex: country, $options: 'i' };
+  }
 
   try {
-    const query = {
-      job_title: { $regex: term, $options: 'i' },
-    };
-
-    if (location) {
-      query.job_city = { $regex: location, $options: 'i' };
-    }
-
-    console.log('Query:', JSON.stringify(query, null, 2)); // Log the query for debugging
-
-    const jobs = await JobApi.find(query);
-
-    console.log('Jobs found:', jobs.length); // Log the number of jobs found
-
+    const jobs = await Job.find(searchQuery); // Assuming `Job` is your MongoDB model
     res.status(200).json(jobs);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error searching jobs', error });
+    console.error("Error searching for jobs:", error);
+    res.status(500).json({ message: 'Failed to search for jobs' });
   }
+  
+  
+  
+  
+  
+  
+  
+  // const { term, location } = req.query;
+
+  // try {
+  //   const query = {
+  //     job_title: { $regex: term, $options: 'i' },
+  //   };
+
+  //   if (location) {
+  //     query.job_city = { $regex: location, $options: 'i' };
+  //   }
+
+  //   console.log('Query:', JSON.stringify(query, null, 2)); // Log the query for debugging
+
+  //   const jobs = await JobApi.find(query);
+
+  //   console.log('Jobs found:', jobs.length); // Log the number of jobs found
+
+  //   res.status(200).json(jobs);
+  // } catch (error) {
+  //   console.error(error);
+  //   res.status(500).json({ message: 'Error searching jobs', error });
+  // }
 };
 
 
