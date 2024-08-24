@@ -3448,26 +3448,20 @@ export const getAllApiJobs = async (req, res) => {
 
 export const searchJobsInDB = async (req, res) => {
   
-  
-  const { city, country } = req.query;
-
-  // Create a search query object
-  const searchQuery = {};
-
-  if (city) {
-    searchQuery.city = { $regex: city, $options: 'i' }; // 'i' for case-insensitive search
-  }
-
-  if (country) {
-    searchQuery.country = { $regex: country, $options: 'i' };
-  }
+  const { term, city, country } = req.body;
 
   try {
-    const jobs = await Job.find(searchQuery); // Assuming `Job` is your MongoDB model
-    res.status(200).json(jobs);
+      let query = {
+          $and: [
+              { job_title: { $regex: term, $options: 'i' } },
+              { job_city: { $regex: city, $options: 'i' } },
+              { job_country: { $regex: country, $options: 'i' } }
+          ]
+      };
+      const jobs = await Job.find(query).exec();
+      res.json(jobs);
   } catch (error) {
-    console.error("Error searching for jobs:", error);
-    res.status(500).json({ message: 'Failed to search for jobs' });
+      res.status(500).json({ message: error.message });
   }
   
   
