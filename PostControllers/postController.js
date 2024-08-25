@@ -3367,6 +3367,8 @@ export const getLibary = async (req, res) => {
       },
     });
 
+    console.log(response,'response')
+
     const saveResults = response.data; // Assuming the API response contains an array of search results
 
     // Save search results in MongoDB
