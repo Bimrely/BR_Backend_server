@@ -74,6 +74,10 @@ const ArticleSchema = new Schema({
     likes: { type: Number, default: 0 },
     shares: { type: Number, default: 0 },
     comments: [CommentSchema],
+    profilePicture: {
+      type: String, // Store the URL or file path of the profile picture
+      default: '', // You can set a default profile picture if you want
+    },
     
     likedBy: [
         {

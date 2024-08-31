@@ -11,6 +11,7 @@ import { Profile } from "../Models/userprofile.js";
 // import {io} from "../index.js"
 import Notification from "../Models/notification.js"
 import { JobApi } from "../Models/apiJobs.js";
+import { v2 as cloudinary } from 'cloudinary';
 // import {Reply} from "../Models/reply.js"
 
 // import {emitLikeNotification,emitCommentNotification} from "../Socket/socket.js"
@@ -1202,42 +1203,78 @@ export const deleteSharedArticle = async (req, res) => {
 
 
 
-
-
-
 export const uploadProfilePic = async (req, res) => {
-
+  const { file } = req;
+  const profileId = req.params.id; // Assuming this is the user ID
+  
   try {
-    const profileId = req.params.id;
-
-    // Ensure a file was uploaded
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
-    }
-
-    // Get the uploaded file's path
-    const profilePictureUrl = `${req.file.filename}`;
-
-    // Update the user's profile with the new profile picture URL
-    const updatedProfile = await Profile.findByIdAndUpdate(
-      profileId,
-      { profilePicture: profilePictureUrl },
-      { new: true }
-    );
-
-    if (!updatedProfile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-
-    res.status(200).json({
-      message: "Profile picture uploaded successfully",
-      profile: updatedProfile,
-    });
+   if (!file) {
+     return res.status(400).json({ message: 'No file uploaded' });
+   }
+  
+   // Upload image to Cloudinary
+   const result = await cloudinary.uploader.upload(file.path, {
+     folder: 'profile_pictures', // Optional folder organization in Cloudinary
+   });
+  
+   // Save the full URL in the profile
+  //  const updatedProfile = await Profile.findOneAndUpdate(
+  //    { profileId },
+  //    {}, // Save the full URL in profile
+  //    { new: true }
+  //  );
+   const updatedProfile = await Profile.findByIdAndUpdate(
+          profileId,
+          {  profilePicture: result.secure_url },
+          { new: true }
+        );
+    
+  
+   res.json({ message: 'Profile picture updated successfully', url: result.secure_url ,profile: updatedProfile,});
   } catch (error) {
-    console.error("Error uploading profile picture:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+   console.error('Error uploading profile picture:', error);
+   res.status(500).json({ message: 'Internal server error' });
   }
-};
+  };
+
+
+
+
+
+
+// export const uploadProfilePic = async (req, res) => {
+
+//   try {
+//     const profileId = req.params.id;
+
+//     // Ensure a file was uploaded
+//     if (!req.file) {
+//       return res.status(400).json({ message: "No file uploaded" });
+//     }
+
+//     // Get the uploaded file's path
+//     const profilePictureUrl = `${req.file.filename}`;
+
+//     // Update the user's profile with the new profile picture URL
+//     const updatedProfile = await Profile.findByIdAndUpdate(
+//       profileId,
+//       { profilePicture: profilePictureUrl },
+//       { new: true }
+//     );
+
+//     if (!updatedProfile) {
+//       return res.status(404).json({ message: "Profile not found" });
+//     }
+
+//     res.status(200).json({
+//       message: "Profile picture uploaded successfully",
+//       profile: updatedProfile,
+//     });
+//   } catch (error) {
+//     console.error("Error uploading profile picture:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// };
 
 
 
@@ -2314,6 +2351,12 @@ if (!user) {
 }
 
 
+const profile = await Profile.findOne({ userId });
+if (!profile) {
+  return res.status(404).json({ message: 'Profile not found' });
+}
+
+
 
   
   
@@ -2323,6 +2366,8 @@ if (!user) {
     firstName: user.firstName,
     lastName: user.lastName,
     userId: req.userId,
+    profilePicture: profile.profilePicture,
+  
   });
 
   await article.save();

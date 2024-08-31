@@ -77,6 +77,8 @@ import {
 } from "../PostControllers/postController.js";
 
 import passport from '../middleware/linkedInAuth.js';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import cloudinary from '../cloudinary/cloudinaryConfig.js';
 
 import { auth } from "../middleware/auth.js";
 import path from "path";
@@ -84,33 +86,61 @@ import { get } from "http";
 
 const router = Router();
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join("../../client/WIP-Frontend/src/images"));
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.originalname);
+
+
+
+
+
+
+const cloudinaryStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'uploads', // Folder where images will be stored in Cloudinary
+    allowed_formats: ['jpg', 'jpeg', 'png', 'mp4'], // Allowed file formats
   },
 });
 
-const mlMiddlewareMultiples = multer({
-  storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
-  fileFilter: (req, file, cb) => {
-    if (
-      file.mimetype == "image/png" ||
-      file.mimetype == "image/jpg" ||
-      file.mimetype == "image/jpeg"
-    ) {
-      cb(null, true);
-    } else {
-      cb(null, false);
-      const err = new Error("Only .png, .jpg and .jpeg format allowed!");
-      err.name = "ExtensionError";
-      return cb(err);
-    }
-  },
-});
+
+
+
+const upload = multer({ storage: cloudinaryStorage });
+
+
+
+
+
+
+
+
+
+
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, path.join("../../client/WIP-Frontend/src/images"));
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, file.originalname);
+//   },
+// });
+
+// const mlMiddlewareMultiples = multer({
+//   storage,
+//   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+//   fileFilter: (req, file, cb) => {
+//     if (
+//       file.mimetype == "image/png" ||
+//       file.mimetype == "image/jpg" ||
+//       file.mimetype == "image/jpeg"
+//     ) {
+//       cb(null, true);
+//     } else {
+//       cb(null, false);
+//       const err = new Error("Only .png, .jpg and .jpeg format allowed!");
+//       err.name = "ExtensionError";
+//       return cb(err);
+//     }
+//   },
+// });
 
 // const mlMiddlewareVideoUpload = multer({
 //   storage,
@@ -137,8 +167,8 @@ const mlMiddlewareMultiples = multer({
 
 
 router.get("/get-article",auth,getallArticle);
-router.post("/create-article",auth,mlMiddlewareMultiples.single("file"), createArticle);
-router.put("/update-article/:id",auth,mlMiddlewareMultiples.single("file"),updateArticle);
+router.post("/create-article",auth,upload.single("file"), createArticle);
+router.put("/update-article/:id",auth,upload.single("file"),updateArticle);
 router.delete("/delete-article/:id",auth, deleteArticle);
 // router.get("/get-article",auth,getallArticle);
 // router.post("/create-article",auth,createArticle);
@@ -165,12 +195,19 @@ router.delete('/profiles/:userId/shared-jobs/:jobId', auth, deleteSharedJob);
 
 
 
+router.put(
+  "/profile/upload-picture/:id",
+  upload.single("profilePicture"), // This expects a field named "profilePicture"
+  uploadProfilePic,auth
+);
 
 
 
 
 
-router.post('/profile/upload-picture/:id',auth,mlMiddlewareMultiples.single("file"),uploadProfilePic)
+
+
+// router.post('/profile/upload-picture/:id',auth,upload.single("file"),uploadProfilePic)
 
 
 
