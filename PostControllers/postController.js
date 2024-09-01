@@ -2345,6 +2345,12 @@ export const createArticle = async (req, res) => {
     contentType: file.mimetype,
 };
 
+
+const result = await cloudinary.uploader.upload(file.path, {
+  folder: 'profile_pictures', // Optional folder organization in Cloudinary
+});
+
+
 const user = await User.findById(userId);
 if (!user) {
   return res.status(404).json({ message: 'User not found' });
@@ -2362,7 +2368,7 @@ if (!profile) {
   
   const article = new Article({
     text:text,
-    file:att,
+    file:result.secure_url,
     firstName: user.firstName,
     lastName: user.lastName,
     userId: req.userId,
