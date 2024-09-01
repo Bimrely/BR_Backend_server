@@ -2347,7 +2347,7 @@ export const createArticle = async (req, res) => {
 
 
 const result = await cloudinary.uploader.upload(file.path, {
-  folder: 'profile_pictures', // Optional folder organization in Cloudinary
+  folder: 'Article', // Optional folder organization in Cloudinary
 });
 
 
@@ -2379,6 +2379,7 @@ if (!profile) {
   await article.save();
 
   res.status(201).json({
+    url: result.secure_ur,
     article,
     message: "succsessfully created",
   });
