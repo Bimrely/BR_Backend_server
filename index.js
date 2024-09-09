@@ -4,27 +4,14 @@ import bodyParser from 'body-parser';
 import 'dotenv/config';
 import { connectDB } from './db.js';
 import routesForApp from './Routes.js';
-// import http from 'http';
-// import { Server } from 'socket.io';
-
-import { createServer } from 'http'; // Ensure you are using HTTP server creation
-import { Server as SocketIOServer } from 'socket.io'; 
+import http from 'http';
+import { Server } from 'socket.io';
 
 const app = express();
 // const server = http.createServer(app);
-// Create HTTP server and attach the express app
-const server = createServer(app);
-
-const io = new SocketIOServer(server, {
-  cors: {
-    origin: 'https://bimrelyfrontend.vercel.app/', // Update with your frontend's URL if necessary
-    methods: ['GET', 'POST' ,'PUT'],
-  },
-});
-
 // const io = new Server(server, {
 //   cors: {
-//     origin: "https://bimrelyfrontend.vercel.app/", //
+//     origin: "https://frontend-jh2ijters-bimrelys-projects.vercel.app/", //
 //     methods: ["GET", "POST","PUT"]
 //   }
 // });
@@ -44,33 +31,33 @@ routesForApp(app);
 connectDB();
 
 // Socket.io integration
-io.on('connection', (socket) => {
-  console.log('a user connected');
+// io.on('connection', (socket) => {
+//   console.log('a user connected');
 
-  socket.on('disconnect', () => {
-    console.log('user disconnected');
-  });
+//   socket.on('disconnect', () => {
+//     console.log('user disconnected');
+//   });
 
-  // Add your custom events here
-  socket.on('example_event', (data) => {
-    console.log('example_event received:', data);
-    // Handle the event
-  });
+//   // Add your custom events here
+//   socket.on('example_event', (data) => {
+//     console.log('example_event received:', data);
+//     // Handle the event
+//   });
 
-  socket.on('join', (userId) => {
-    socket.join(userId);
-  })
+//   socket.on('join', (userId) => {
+//     socket.join(userId);
+//   })
   
-  socket.on('like_article', (data) => {
+//   socket.on('like_article', (data) => {
   
-    console.log('example_event received:', data);
+//     console.log('example_event received:', data);
   
   
   
     
-  });
+//   });
 
-});
+// });
 
 
 
@@ -81,7 +68,7 @@ app.listen(process.env.PORT, () => {
 
 
 
-export default  io ;
+// export { io };
 
 
 
