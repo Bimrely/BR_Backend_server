@@ -68,7 +68,7 @@ app.listen(process.env.PORT, () => {
 
 
 
-export default { io };
+export { io };
 
 
 
