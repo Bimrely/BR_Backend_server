@@ -4,17 +4,30 @@ import bodyParser from 'body-parser';
 import 'dotenv/config';
 import { connectDB } from './db.js';
 import routesForApp from './Routes.js';
-import http from 'http';
-import { Server } from 'socket.io';
+// import http from 'http';
+// import { Server } from 'socket.io';
+
+import { createServer } from 'http'; // Ensure you are using HTTP server creation
+import { Server as SocketIOServer } from 'socket.io'; 
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
+// const server = http.createServer(app);
+// Create HTTP server and attach the express app
+const server = createServer(app);
+
+const io = new SocketIOServer(server, {
   cors: {
-    origin: "https://bimrelyfrontend.vercel.app/", //
-    methods: ["GET", "POST","PUT"]
-  }
+    origin: 'https://bimrelyfrontend.vercel.app/', // Update with your frontend's URL if necessary
+    methods: ['GET', 'POST' ,'PUT'],
+  },
 });
+
+// const io = new Server(server, {
+//   cors: {
+//     origin: "https://bimrelyfrontend.vercel.app/", //
+//     methods: ["GET", "POST","PUT"]
+//   }
+// });
 
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
