@@ -11,7 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://frontend-jh2ijters-bimrelys-projects.vercel.app/", //
+    origin: "https://bimrelyfrontend.vercel.app/", //
     methods: ["GET", "POST","PUT"]
   }
 });
@@ -68,7 +68,7 @@ app.listen(process.env.PORT, () => {
 
 
 
-export { io };
+export default  io ;
 
 
 
