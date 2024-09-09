@@ -8,13 +8,13 @@ import http from 'http';
 import { Server } from 'socket.io';
 
 const app = express();
-// const server = http.createServer(app);
-// const io = new Server(server, {
-//   cors: {
-//     origin: "https://frontend-jh2ijters-bimrelys-projects.vercel.app/", //
-//     methods: ["GET", "POST","PUT"]
-//   }
-// });
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "https://bimrelyfrontend.vercel.app/", //
+    methods: ["GET", "POST","PUT"]
+  }
+});
 
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
@@ -68,7 +68,7 @@ app.listen(process.env.PORT, () => {
 
 
 
-// export { io };
+export default { io };
 
 
 
