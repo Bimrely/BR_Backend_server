@@ -1,70 +1,149 @@
+
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import 'dotenv/config';
 import { connectDB } from './db.js';
 import routesForApp from './Routes.js';
-import http from 'http';
+import { createServer } from 'http';
 import { Server } from 'socket.io';
 
+// Initialize Express App
 const app = express();
-// const server = http.createServer(app);
-// const io = new Server(server, {
-//   cors: {
-//     origin: "https://frontend-jh2ijters-bimrelys-projects.vercel.app/", //
-//     methods: ["GET", "POST","PUT"]
-//   }
-// });
 
+// Create HTTP server and attach the Express app
+const server = createServer(app);
+
+// Initialize Socket.IO and attach it to the HTTP server
+const io = new Server(server, {
+  cors: {
+    origin: "https://bimrelyfrontend.vercel.app/", // Your frontend URL
+    methods: ["GET", "POST", "PUT"],
+  },
+});
+
+// Middleware setup
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors());
 app.use(express.json());
 
+// Routes setup
 app.get('/', (req, res) => {
   res.send('Welcome to Node Babel');
   console.log("running");
 });
 
 routesForApp(app);
-
 connectDB();
 
-// Socket.io integration
-// io.on('connection', (socket) => {
-//   console.log('a user connected');
+// Socket.IO integration
+io.on('connection', (socket) => {
+  console.log('A user connected');
 
-//   socket.on('disconnect', () => {
-//     console.log('user disconnected');
-//   });
+  // Example event listeners
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
+  });
 
-//   // Add your custom events here
-//   socket.on('example_event', (data) => {
-//     console.log('example_event received:', data);
-//     // Handle the event
-//   });
+  socket.on('example_event', (data) => {
+    console.log('example_event received:', data);
+  });
 
-//   socket.on('join', (userId) => {
-//     socket.join(userId);
-//   })
+  socket.on('join', (userId) => {
+    socket.join(userId); // User joins their own room for private notifications
+  });
+
+  socket.on('like_article', (data) => {
+    console.log('like_article event received:', data);
+  });
+});
+
+// Server listen on the specified port
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () => {
+  console.log(`Server is running on port: ${PORT}`);
+});
+
+// Export the Socket.IO instance for use in other modules
+export { io };
+
+
+
+
+
+
+
+
+
+
+// import express from 'express';
+// import cors from 'cors';
+// import bodyParser from 'body-parser';
+// import 'dotenv/config';
+// import { connectDB } from './db.js';
+// import routesForApp from './Routes.js';
+// import http from 'http';
+// import { Server } from 'socket.io';
+
+// const app = express();
+// // const server = http.createServer(app);
+// // const io = new Server(server, {
+// //   cors: {
+// //     origin: "https://frontend-jh2ijters-bimrelys-projects.vercel.app/", //
+// //     methods: ["GET", "POST","PUT"]
+// //   }
+// // });
+
+// app.use(bodyParser.json({ limit: '10mb' }));
+// app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+// app.use(cors());
+// app.use(express.json());
+
+// app.get('/', (req, res) => {
+//   res.send('Welcome to Node Babel');
+//   console.log("running");
+// });
+
+// routesForApp(app);
+
+// connectDB();
+
+// // Socket.io integration
+// // io.on('connection', (socket) => {
+// //   console.log('a user connected');
+
+// //   socket.on('disconnect', () => {
+// //     console.log('user disconnected');
+// //   });
+
+// //   // Add your custom events here
+// //   socket.on('example_event', (data) => {
+// //     console.log('example_event received:', data);
+// //     // Handle the event
+// //   });
+
+// //   socket.on('join', (userId) => {
+// //     socket.join(userId);
+// //   })
   
-//   socket.on('like_article', (data) => {
+// //   socket.on('like_article', (data) => {
   
-//     console.log('example_event received:', data);
+// //     console.log('example_event received:', data);
   
   
   
     
-//   });
+// //   });
 
+// // });
+
+
+
+
+// app.listen(process.env.PORT, () => {
+//   console.log(`server is running on port: ${process.env.PORT}`);
 // });
-
-
-
-
-app.listen(process.env.PORT, () => {
-  console.log(`server is running on port: ${process.env.PORT}`);
-});
 
 
 
