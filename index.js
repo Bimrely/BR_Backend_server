@@ -66,7 +66,7 @@ server.listen(PORT, () => {
 });
 
 // Export the Socket.IO instance for use in other modules
-export { io };
+export default io ;
 
 
 
