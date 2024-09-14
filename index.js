@@ -4,19 +4,18 @@ import bodyParser from 'body-parser';
 import 'dotenv/config';
 import { connectDB } from './db.js';
 import routesForApp from './Routes.js';
-import http from 'http';
+// import http from 'http';
+import { createServer } from "http";
 import { Server } from 'socket.io';
 
 const app = express();
-const server = http.createServer(app);
-
-const io = new Server(server);
-// const io = new Server(server, {
-//   cors: {
-//     origin: "https://bimrelyfrontend.vercel.app", //
-//     methods: ["GET", "POST","PUT"]
-//   }
-// });
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "https://bimrelyfrontend.vercel.app", //
+    methods: ["GET", "POST","PUT"]
+  }
+});
 
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
@@ -64,7 +63,7 @@ io.on('connection', (socket) => {
 
 
 
-server.listen(process.env.PORT, () => {
+httpServer.listen(process.env.PORT, () => {
   console.log(`server is running on port: ${process.env.PORT}`);
 });
 
