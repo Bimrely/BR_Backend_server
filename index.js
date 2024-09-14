@@ -6,15 +6,17 @@ import { connectDB } from './db.js';
 import routesForApp from './Routes.js';
 import http from 'http';
 import { Server } from 'socket.io';
+import { createServer } from "http";
 
 const app = express();
+const httpServer = createServer(app);
 // const server = http.createServer(app);
-// const io = new Server(server, {
-//   cors: {
-//     origin: "https://frontend-jh2ijters-bimrelys-projects.vercel.app/", //
-//     methods: ["GET", "POST","PUT"]
-//   }
-// });
+const io = new Server(httpServer, {
+  cors: {
+    origin: "https://bimrelyfrontend.vercel.app", //
+    methods: ["GET", "POST","PUT"]
+  }
+});
 
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
@@ -30,6 +32,16 @@ routesForApp(app);
 
 connectDB();
 
+
+io.on('connection', (socket) => {
+  console.log('a user connected');
+
+  socket.on('disconnect', () => {
+    console.log('user disconnected');
+  });
+});
+
+httpServer.listen(3000);
 // Socket.io integration
 // io.on('connection', (socket) => {
 //   console.log('a user connected');
@@ -62,9 +74,9 @@ connectDB();
 
 
 
-app.listen(process.env.PORT, () => {
-  console.log(`server is running on port: ${process.env.PORT}`);
-});
+// app.listen(process.env.PORT, () => {
+//   console.log(`server is running on port: ${process.env.PORT}`);
+// });
 
 
 
