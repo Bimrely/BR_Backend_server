@@ -1,4 +1,4 @@
-module.exports = function(io, streams, views) {
+exports = function(io, streams, views) {
    
 
     
