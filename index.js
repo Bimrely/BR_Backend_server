@@ -5,16 +5,22 @@ import 'dotenv/config';
 import { connectDB } from './db.js';
 import routesForApp from './Routes.js';
 import http from 'http';
+import injectSocketIO from './socketHandler.js'
 import { Server } from 'socket.io';
 
 const app = express();
+const server = http.createServer(app)
 // const server = http.createServer(app);
-// const io = new Server(server, {
-//   cors: {
-//     origin: "https://frontend-jh2ijters-bimrelys-projects.vercel.app/", //
-//     methods: ["GET", "POST","PUT"]
-//   }
-// });
+const io = new Server(server, {
+  cors: {
+    origin: "https://bimrelyfrontend.vercel.app", //
+    methods: ["GET", "POST","PUT"]
+  }
+});
+
+
+// Inject SocketIO
+injectSocketIO(server)
 
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
@@ -31,44 +37,44 @@ routesForApp(app);
 connectDB();
 
 // Socket.io integration
-// io.on('connection', (socket) => {
-//   console.log('a user connected');
+io.on('connection', (socket) => {
+  console.log('a user connected');
 
-//   socket.on('disconnect', () => {
-//     console.log('user disconnected');
-//   });
+  socket.on('disconnect', () => {
+    console.log('user disconnected');
+  });
 
-//   // Add your custom events here
-//   socket.on('example_event', (data) => {
-//     console.log('example_event received:', data);
-//     // Handle the event
-//   });
+  // Add your custom events here
+  socket.on('example_event', (data) => {
+    console.log('example_event received:', data);
+    // Handle the event
+  });
 
-//   socket.on('join', (userId) => {
-//     socket.join(userId);
-//   })
+  socket.on('join', (userId) => {
+    socket.join(userId);
+  })
   
-//   socket.on('like_article', (data) => {
+  socket.on('like_article', (data) => {
   
-//     console.log('example_event received:', data);
+    console.log('example_event received:', data);
   
   
   
     
-//   });
+  });
 
-// });
-
-
+});
 
 
-app.listen(process.env.PORT, () => {
+
+
+server.listen(process.env.PORT, () => {
   console.log(`server is running on port: ${process.env.PORT}`);
 });
 
 
 
-// export { io };
+export default io ;
 
 
 
