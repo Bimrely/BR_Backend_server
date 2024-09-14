@@ -9,12 +9,14 @@ import { Server } from 'socket.io';
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "https://bimrelyfrontend.vercel.app", //
-    methods: ["GET", "POST","PUT"]
-  }
-});
+
+const io = new Server(server);
+// const io = new Server(server, {
+//   cors: {
+//     origin: "https://bimrelyfrontend.vercel.app", //
+//     methods: ["GET", "POST","PUT"]
+//   }
+// });
 
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
