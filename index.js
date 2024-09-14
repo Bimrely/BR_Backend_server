@@ -4,18 +4,17 @@ import bodyParser from 'body-parser';
 import 'dotenv/config';
 import { connectDB } from './db.js';
 import routesForApp from './Routes.js';
-// import http from 'http';
-import { createServer } from "http";
+import http from 'http';
 import { Server } from 'socket.io';
 
 const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: "https://bimrelyfrontend.vercel.app", //
-    methods: ["GET", "POST","PUT"]
-  }
-});
+// const server = http.createServer(app);
+// const io = new Server(server, {
+//   cors: {
+//     origin: "https://frontend-jh2ijters-bimrelys-projects.vercel.app/", //
+//     methods: ["GET", "POST","PUT"]
+//   }
+// });
 
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
@@ -32,44 +31,44 @@ routesForApp(app);
 connectDB();
 
 // Socket.io integration
-io.on('connection', (socket) => {
-  console.log('a user connected');
+// io.on('connection', (socket) => {
+//   console.log('a user connected');
 
-  socket.on('disconnect', () => {
-    console.log('user disconnected');
-  });
+//   socket.on('disconnect', () => {
+//     console.log('user disconnected');
+//   });
 
-  // Add your custom events here
-  socket.on('example_event', (data) => {
-    console.log('example_event received:', data);
-    // Handle the event
-  });
+//   // Add your custom events here
+//   socket.on('example_event', (data) => {
+//     console.log('example_event received:', data);
+//     // Handle the event
+//   });
 
-  socket.on('join', (userId) => {
-    socket.join(userId);
-  })
+//   socket.on('join', (userId) => {
+//     socket.join(userId);
+//   })
   
-  socket.on('like_article', (data) => {
+//   socket.on('like_article', (data) => {
   
-    console.log('example_event received:', data);
+//     console.log('example_event received:', data);
   
   
   
     
-  });
+//   });
 
-});
-
-
-
-
-// httpServer.listen(process.env.PORT, () => {
-//   console.log(`server is running on port: ${process.env.PORT}`);
 // });
 
 
 
- export default  io ;
+
+app.listen(process.env.PORT, () => {
+  console.log(`server is running on port: ${process.env.PORT}`);
+});
+
+
+
+// export { io };
 
 
 
