@@ -11,7 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://bimrelyfrontend.vercel.app/", //
+    origin: "https://bimrelyfrontend.vercel.app", //
     methods: ["GET", "POST","PUT"]
   }
 });
@@ -62,7 +62,7 @@ io.on('connection', (socket) => {
 
 
 
-app.listen(process.env.PORT, () => {
+server.listen(process.env.PORT, () => {
   console.log(`server is running on port: ${process.env.PORT}`);
 });
 
