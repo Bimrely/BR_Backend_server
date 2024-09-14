@@ -30,7 +30,7 @@ app.get('/', (req, res) => {
 
 routesForApp(app);
 
-connectDB();
+
 
 
 io.on('connection', (socket) => {
@@ -42,6 +42,7 @@ io.on('connection', (socket) => {
 });
 
 httpServer.listen(3000);
+connectDB();
 // Socket.io integration
 // io.on('connection', (socket) => {
 //   console.log('a user connected');
