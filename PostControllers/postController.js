@@ -13,14 +13,35 @@ import Notification from "../Models/notification.js"
 import { JobApi } from "../Models/apiJobs.js";
 import { v2 as cloudinary } from 'cloudinary';
 // import {Reply} from "../Models/reply.js"
-import  pusher  from '../index.js';
-
+// import  pusher  from '../index.js';
+import Pusher from 'pusher';
 // import {emitLikeNotification,emitCommentNotification} from "../Socket/socket.js"
 import axios from "axios";
 
 // import { Configuration, OpenAIApi } from 'openai';
 // import { Configuration, OpenAIApi } from "openai"
 import  { OpenAIApi,Configuration } from 'openai';
+
+
+
+
+
+
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID,  // Pusher App ID
+  key: process.env.PUSHER_KEY,       // Pusher Key
+  secret: process.env.PUSHER_SECRET, // Pusher Secret
+  cluster: process.env.PUSHER_CLUSTER, // Pusher Cluster
+  useTLS: true                      // Enable TLS (required for secure connections)
+});
+
+
+
+
+
+
+
+
 
 // OpenAI Configuration
 const config = new Configuration({
