@@ -6,8 +6,17 @@ import { connectDB } from './db.js';
 import routesForApp from './Routes.js';
 import http from 'http';
 import { Server } from 'socket.io';
-
+import Pusher from 'pusher';
 const app = express();
+
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID,  // Pusher App ID
+  key: process.env.PUSHER_KEY,       // Pusher Key
+  secret: process.env.PUSHER_SECRET, // Pusher Secret
+  cluster: process.env.PUSHER_CLUSTER, // Pusher Cluster
+  useTLS: true                      // Enable TLS (required for secure connections)
+});
+
 // const server = http.createServer(app);
 // const io = new Server(server, {
 //   cors: {
@@ -66,7 +75,7 @@ app.listen(process.env.PORT, () => {
   console.log(`server is running on port: ${process.env.PORT}`);
 });
 
-
+export { pusher };
 
 // export { io };
 

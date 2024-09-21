@@ -13,6 +13,7 @@ import Notification from "../Models/notification.js"
 import { JobApi } from "../Models/apiJobs.js";
 import { v2 as cloudinary } from 'cloudinary';
 // import {Reply} from "../Models/reply.js"
+import { pusher } from '../index.js';
 
 // import {emitLikeNotification,emitCommentNotification} from "../Socket/socket.js"
 import axios from "axios";
@@ -128,8 +129,19 @@ export const likeArticle = async (req, res) => {
 
   await notification.save();
 
+
+
+  // Send a real-time notification using Pusher
+  pusher.trigger('article-channel', 'like-article', {
+    articleId,
+    userId,
+    message: `${user.firstName} ${user.lastName} liked your article.`,
+  });
+
+
+
   // Emit socket event to the article owner
-  io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
+  // io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
 }
 
     // Check if the user has already liked the article
