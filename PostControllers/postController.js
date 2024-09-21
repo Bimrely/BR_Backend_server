@@ -124,7 +124,7 @@ export const likeArticle = async (req, res) => {
     user: article.userId,
     type: 'like',
     article: article._id,
-    message: `${user.firstName} ${user.lastName} liked yours article.`,
+    message: `${user.firstName} ${user.lastName} liked your article.`,
   });
 
   await notification.save();
