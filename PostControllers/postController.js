@@ -135,7 +135,7 @@ export const likeArticle = async (req, res) => {
   pusher.trigger('article-channel', 'like-article', {
     articleId,
     userId,
-    message: `${user.firstName} ${user.lastName} liked yoursSSSS article.`,
+    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss article.`,
   });
 
 
