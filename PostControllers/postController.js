@@ -13,7 +13,7 @@ import Notification from "../Models/notification.js"
 import { JobApi } from "../Models/apiJobs.js";
 import { v2 as cloudinary } from 'cloudinary';
 // import {Reply} from "../Models/reply.js"
-import { pusher } from '../index.js';
+import  pusher  from '../index.js';
 
 // import {emitLikeNotification,emitCommentNotification} from "../Socket/socket.js"
 import axios from "axios";
