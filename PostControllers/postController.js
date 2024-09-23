@@ -800,9 +800,18 @@ export const commentArticle = async (req, res) => {
   });
 
   await notification.save();
+  
+  
+  pusher.trigger('article-channel', 'new-comment', {
+    articleId,
+    userId,
+    commentText,
+    message: `User ${userId} commented on article ${articleId}.`,
+  });
+
 
   // Emit socket event to the article owner
-  io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
+  // io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
 }
 
 await article.save();
@@ -1197,9 +1206,15 @@ export const shareArticle = async (req, res) => {
       });
     
       await notification.save();
+
+      pusher.trigger('article-channel', 'share-article', {
+        articleId,
+        userId,
+        message: `User ${userId} shared article ${articleId}.`,
+      });
     
       // Emit socket event to the article owner
-      io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
+      // io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
     }
 
     // Update the article's share count
