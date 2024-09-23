@@ -252,8 +252,15 @@ if (comment.userId.toString() !== userId) {
 
   await notification.save();
 
+  pusher.trigger('article-channel', 'like-comment', {
+    articleId,
+    commentId,
+    userId,
+  
+  });
+
   // Emit socket event to the article owner
-  io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
+  // io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
 }
 
 
@@ -343,8 +350,15 @@ if (comment.userId.toString() !== userId) {
 
   await notification.save();
 
+
+  pusher.trigger('article-channel', 'like-comment-job', {
+    jobId,
+    userId,
+  
+  });
+
   // Emit socket event to the article owner
-  io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
+  // io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
 }
 
 
