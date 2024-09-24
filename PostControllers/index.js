@@ -178,7 +178,7 @@ router.delete("/delete-article/:id",auth, deleteArticle);
 // Jobs Routes //
 
 router.get("/jobs", auth, getallJob);
-router.post("/create-job",auth,createJob);
+router.post("/create-job",auth,upload.single("file"),createJob);
 router.put("/update-job/:id", auth, updateJob);
 router.delete("/delete-job/:id", auth, deleteJob);
 

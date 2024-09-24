@@ -2587,11 +2587,22 @@ export const createJob = async (req, res) => {
     contentType: file.mimetype,
 };
 
+
+
+const result = await cloudinary.uploader.upload(file.path, {
+  folder: 'Jobs', // Optional folder organization in Cloudinary
+});
+
 const user = await User.findById(userId);
 if (!user) {
   return res.status(404).json({ message: 'User not found' });
 }
 
+
+const profile = await Profile.findOne({ userId });
+if (!profile) {
+  return res.status(404).json({ message: 'Profile not found' });
+}
 
 
   
@@ -2602,11 +2613,13 @@ if (!user) {
     firstName: user.firstName,
     lastName: user.lastName,
     userId: req.userId,
+    profilePicture: profile.profilePicture,
   });
 
   await job.save();
 
   res.status(201).json({
+    url: result.secure_ur,
     job,
     message: "succsessfully created",
   });
