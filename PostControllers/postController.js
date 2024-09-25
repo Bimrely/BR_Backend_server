@@ -1401,7 +1401,7 @@ export const shareJob = async (req, res) => {
       await notification.save();
 
       // Emit socket event to the job owner
-      io.to(job.userId.toString()).emit('notification', notification, { jobId, userId });
+      // io.to(job.userId.toString()).emit('notification', notification, { jobId, userId });
     }
 
     // Update the job's share count
