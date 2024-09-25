@@ -2609,7 +2609,7 @@ if (!profile) {
   
   const job = new Job({
     text:text,
-    file:att,
+    file:result.secure_url,
     firstName: user.firstName,
     lastName: user.lastName,
     userId: req.userId,
