@@ -2240,8 +2240,15 @@ export const likeJob = async (req, res) => {
 
   await notification.save();
 
-  // Emit socket event to the article owner
-  io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
+
+  pusher.trigger('job-channel', 'like-job', {
+    jobId,
+    userId,
+    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss article.`,
+  });
+
+  // // Emit socket event to the article owner
+  // io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
 }
 
     // Check if the user has already liked the article
