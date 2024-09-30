@@ -1274,7 +1274,7 @@ export const deleteSharedArticle = async (req, res) => {
 export const uploadProfilePic = async (req, res) => {
   const { file } = req;
   const profileId = req.params.id; // Assuming this is the user ID
-  
+  const userId = req.userId; 
   try {
    if (!file) {
      return res.status(400).json({ message: 'No file uploaded' });
@@ -1296,7 +1296,7 @@ export const uploadProfilePic = async (req, res) => {
           {  profilePicture: result.secure_url },
           { new: true }
         );
-        await Article.updateMany({ profileId }, { $set: { profilePicture } });
+        await Article.updateMany({ userId }, { $set: { profilePicture } });
     
   
    res.json({ message: 'Profile picture updated successfully', url: result.secure_url ,profile: updatedProfile,});
