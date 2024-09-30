@@ -407,7 +407,7 @@ export const commentJob = async (req, res) => {
     const { jobId } = req.params;
     // const {userId} = req.params;
     console.log(jobId);
-    // console.log(userId); 
+  
 
     const { text} = req.body;
     const userId = req.userId; 
