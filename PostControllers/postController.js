@@ -1296,8 +1296,13 @@ export const uploadProfilePic = async (req, res) => {
           {  profilePicture: result.secure_url },
           { new: true }
         );
-        await Article.updateMany({ userId }, { $set: { profilePicture } });
-    
+       
+        const updatedArticleProfile = await Article.findByIdAndUpdate(
+          userId,
+          {  profilePicture: result.secure_url },
+          { new: true }
+        );
+       
   
    res.json({ message: 'Profile picture updated successfully', url: result.secure_url ,profile: updatedProfile,});
   } catch (error) {
