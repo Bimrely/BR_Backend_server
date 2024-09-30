@@ -179,7 +179,7 @@ router.delete("/delete-article/:id",auth, deleteArticle);
 
 router.get("/jobs", auth, getallJob);
 router.post("/create-job",auth,upload.single("file"),createJob);
-router.put("/update-job/:id", auth, updateJob);
+router.put("/update-job/:id", auth, upload.single("file"),updateJob);
 router.delete("/delete-job/:id", auth, deleteJob);
 
 

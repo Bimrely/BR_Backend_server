@@ -351,7 +351,7 @@ if (comment.userId.toString() !== userId) {
   await notification.save();
 
 
-  pusher.trigger('article-channel', 'like-comment-job', {
+  pusher.trigger('job-channel', 'like-comment-job', {
     jobId,
     userId,
   
@@ -451,8 +451,14 @@ export const commentJob = async (req, res) => {
 
   await notification.save();
 
+  
+  pusher.trigger('job-channel', 'new-comment-job', {
+    jobId,
+    userId,
+  
+  });
   // Emit socket event to the job owner
-  io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
+  // io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
 }
 
 await job.save();
@@ -1400,6 +1406,14 @@ export const shareJob = async (req, res) => {
 
       await notification.save();
 
+
+      
+      pusher.trigger('job-channel', 'share-job', {
+        jobId,
+        userId,
+        message: `User ${userId} shared article ${jobId}.`,
+      });
+    
       // Emit socket event to the job owner
       // io.to(job.userId.toString()).emit('notification', notification, { jobId, userId });
     }
