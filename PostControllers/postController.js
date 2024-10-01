@@ -1297,11 +1297,11 @@ export const uploadProfilePic = async (req, res) => {
           { new: true }
         );
        
-        const updatedArticleProfile = await Article.findByIdAndUpdate(
-          userId,
-          {  profilePicture: result.secure_url },
-          { new: true }
-        );
+        // const updatedArticleProfile = await Article.findByIdAndUpdate(
+        //   userId,
+        //   {  profilePicture: result.secure_url },
+        //   { new: true }
+        // );
        
   
    res.json({ message: 'Profile picture updated successfully', url: result.secure_url ,profile: updatedProfile,});
@@ -2385,8 +2385,9 @@ export const getallArticle = async (req, res) => {
     // Fetch paginated data
     const article = await Article.find()
       .skip(skip)
-      .limit(Number(limit));
-
+      .limit(Number(limit))
+      .populate('author', 'firstName lastName profilePicture') // Dynamically populate author's details
+      .exec();
     const totalPages = Math.ceil(totalItems / limit);
 
     res.status(200).json({

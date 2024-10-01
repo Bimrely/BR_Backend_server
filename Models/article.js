@@ -76,6 +76,11 @@ const ArticleSchema = new Schema({
       default: '',
 
     },
+    createdAt: { type: Date, default: Date.now },
+    author: { 
+      type: Schema.Types.ObjectId, 
+      ref: 'User'  // Reference the User or Profile model
+    },
     likes: { type: Number, default: 0 },
     shares: { type: Number, default: 0 },
     comments: [CommentSchema],
