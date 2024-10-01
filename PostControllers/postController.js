@@ -2380,7 +2380,7 @@ export const getallArticle = async (req, res) => {
     const article = await Article.find()
       .skip(skip)
       .limit(Number(limit))
-      .populate('profilePicture')  // Dynamically populate author's profile details
+      .populate('author', 'firstName lastName profilePicture')  // Dynamically populate author's profile details
       .exec();
 
 
