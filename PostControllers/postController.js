@@ -1274,7 +1274,7 @@ export const deleteSharedArticle = async (req, res) => {
 export const uploadProfilePic = async (req, res) => {
   const { file } = req;
   const profileId = req.params.id; // Assuming this is the user ID
-  const userId = req.userId; 
+  
   try {
    if (!file) {
      return res.status(400).json({ message: 'No file uploaded' });
@@ -1296,13 +1296,7 @@ export const uploadProfilePic = async (req, res) => {
           {  profilePicture: result.secure_url },
           { new: true }
         );
-       
-        // const updatedArticleProfile = await Article.findByIdAndUpdate(
-        //   userId,
-        //   {  profilePicture: result.secure_url },
-        //   { new: true }
-        // );
-       
+    
   
    res.json({ message: 'Profile picture updated successfully', url: result.secure_url ,profile: updatedProfile,});
   } catch (error) {
@@ -2385,9 +2379,8 @@ export const getallArticle = async (req, res) => {
     // Fetch paginated data
     const article = await Article.find()
       .skip(skip)
-      .limit(Number(limit))
-      .populate('author', 'firstName lastName profilePicture') // Dynamically populate author's details
-      .exec();
+      .limit(Number(limit));
+
     const totalPages = Math.ceil(totalItems / limit);
 
     res.status(200).json({
