@@ -2379,7 +2379,10 @@ export const getallArticle = async (req, res) => {
     // Fetch paginated data
     const article = await Article.find()
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .populate('author', 'firstName lastName profilePicture')  // Dynamically populate author's profile details
+      .exec();
+
 
     const totalPages = Math.ceil(totalItems / limit);
 
