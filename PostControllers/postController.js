@@ -2464,9 +2464,14 @@ if (!profile) {
 
   await article.save();
 
+      const populatedArticle = await Article.findById(article._id)
+      .populate('author', 'firstName lastName profilePicture')
+      .exec();
+
+
   res.status(201).json({
     url: result.secure_ur,
-    article,
+    article:populatedArticle,
     message: "succsessfully created",
   });
 };
