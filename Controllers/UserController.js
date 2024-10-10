@@ -340,22 +340,22 @@ export const editUserProfile = async (req, res) => {
     }, { new: true });
     
     // await Article.updateMany({ userId }, { $set: { firstName, lastName, 'likedBy.$[elem].firstName': firstName, 'likedBy.$[elem].lastName': lastName } }, { arrayFilters: [{ "elem.userId": userId }] });
-    await Article.updateMany({ 'likedBy.userId': userId }, { $set: { 'likedBy.$.firstName': firstName, 'likedBy.$.lastName': lastName } });
-    await Article.updateMany({ userId }, { $set: { firstName, lastName } });
-    // await Article.updateMany({ 'comments.userId': userId }, { $set: { 'comments.$.firstName': firstName, 'comments.$.lastName': lastName } });
-    await Article.updateMany({ 'comments.userId': userId }, { $set: { 'comments.$.firstName': firstName, 'comments.$.lastName': lastName, 'comments.$.likedBy.$[elem].firstName': firstName, 'comments.$.likedBy.$[elem].lastName': lastName } }, { arrayFilters: [{ "elem.userId": userId }] });
-    await Article.updateMany({ 'comments.replies.userId': userId }, { $set: { 'comments.$[commentElem].replies.$[replyElem].firstName': firstName, 'comments.$[commentElem].replies.$[replyElem].lastName': lastName } }, { arrayFilters: [{ "commentElem.userId": userId }, { "replyElem.userId": userId }] });
+    // await Article.updateMany({ 'likedBy.userId': userId }, { $set: { 'likedBy.$.firstName': firstName, 'likedBy.$.lastName': lastName } });
+    // await Article.updateMany({ userId }, { $set: { firstName, lastName } });
+    // // await Article.updateMany({ 'comments.userId': userId }, { $set: { 'comments.$.firstName': firstName, 'comments.$.lastName': lastName } });
+    // await Article.updateMany({ 'comments.userId': userId }, { $set: { 'comments.$.firstName': firstName, 'comments.$.lastName': lastName, 'comments.$.likedBy.$[elem].firstName': firstName, 'comments.$.likedBy.$[elem].lastName': lastName } }, { arrayFilters: [{ "elem.userId": userId }] });
+    // await Article.updateMany({ 'comments.replies.userId': userId }, { $set: { 'comments.$[commentElem].replies.$[replyElem].firstName': firstName, 'comments.$[commentElem].replies.$[replyElem].lastName': lastName } }, { arrayFilters: [{ "commentElem.userId": userId }, { "replyElem.userId": userId }] });
     
-    await Article.updateMany(
-      { 'comments.replies.userId': userId },
-      {
-        $set: {
-          'comments.$[commentElem].replies.$[replyElem].likedBy.$[likedByElem].firstName': firstName,
-          'comments.$[commentElem].replies.$[replyElem].likedBy.$[likedByElem].lastName': lastName
-        }
-      },
-      { arrayFilters: [{ 'commentElem.replies.userId': userId }, { 'replyElem.userId': userId }, { 'likedByElem.userId': userId }] }
-    );
+    // await Article.updateMany(
+    //   { 'comments.replies.userId': userId },
+    //   {
+    //     $set: {
+    //       'comments.$[commentElem].replies.$[replyElem].likedBy.$[likedByElem].firstName': firstName,
+    //       'comments.$[commentElem].replies.$[replyElem].likedBy.$[likedByElem].lastName': lastName
+    //     }
+    //   },
+    //   { arrayFilters: [{ 'commentElem.replies.userId': userId }, { 'replyElem.userId': userId }, { 'likedByElem.userId': userId }] }
+    // );
 
     if (!updatedProfile) {
       return res.status(404).json({ message: 'User profile not found' });
