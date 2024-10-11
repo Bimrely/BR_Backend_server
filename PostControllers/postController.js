@@ -2804,7 +2804,7 @@ if (!profile) {
       const populatedIssue = await Issue.findById(issue._id)
       .populate('author', 'firstName lastName profilePicture')
       .exec();
-  await issue.save();
+
 
   res.status(201).json({
     issue:populatedIssue,
@@ -3277,68 +3277,57 @@ export const getallLearn = async (req, res) => {
 
 // Create Learn //
 export const createLearn = async (req, res) => {
-  const {text} = req.body;
-  const file  = req.file;
+  const { text } = req.body;
+  const file = req.file;
   const userId = req.userId;
-  // const {userId} = req.params;
-  
+
   if (!file || !file.originalname) {
     return res.status(400).json({ message: 'Invalid file data' });
   }
 
+  try {
+    // Upload image or video to Cloudinary
+    const result = await cloudinary.uploader.upload(file.path, {
+      folder: 'Learn',  // Store in Learn folder
+      resource_type: 'auto',  // Let Cloudinary detect whether it's an image or video
+    });
 
-  const att = {
-    name: file.originalname,
-    fileInfo:{
-      size: file.size,
-      mimetype: file.mimetype,
-      location: file.location,
-    },
-    fileBucket: file.bucket,
-    fileKey: file.key,
-    location: file.location,
-    contentType: file.mimetype,
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const profile = await Profile.findOne({ userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    // Create the Learn entry
+    const learn = new Learn({
+      text: text,
+      file: result.secure_url,  // Store the file URL (image/video)
+      userId: req.userId,
+      author: profile._id  // Link to the author's profile
+    });
+
+    await learn.save();
+
+    // Populate the author details after saving the learn entry
+    const populatedLearn = await Learn.findById(learn._id)
+      .populate('author', 'firstName lastName profilePicture')
+      .exec();
+
+    res.status(201).json({
+      url: result.secure_url,
+      learn: populatedLearn,
+      message: "Successfully created",
+    });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 };
 
-const result = await cloudinary.uploader.upload(file.path, {
-  folder: 'Learn', // Optional folder organization in Cloudinary
-});
-
-const user = await User.findById(userId);
-if (!user) {
-  return res.status(404).json({ message: 'User not found' });
-}
-
-
-const profile = await Profile.findOne({ userId });
-if (!profile) {
-  return res.status(404).json({ message: 'Profile not found' });
-}
-
-
-  
-  
-  const learn = new Learn({
-    text:text,
-    file:result.secure_url,
-    userId: req.userId,
-    // profilePicture: profile.profilePicture,
-    author: profile._id  
-  });
-
-  await learn.save();
-
-  
-const populatedLearn = await Learn.findById(learn._id)
-.populate('author', 'firstName lastName profilePicture')
-.exec();
-
-
-  res.status(201).json({
-    learn:populatedLearn,
-    message: "succsessfully created",
-  });
-};
 
 // Update Learn //
 
