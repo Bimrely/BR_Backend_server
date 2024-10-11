@@ -43,11 +43,20 @@ const IssueSchema = new Schema({
   firstName:String,
   lastName:String,
     text:String,
-    file:files,
+  
     likes: { type: Number, default: 0 },
     shares: { type: Number, default: 0 },
     comments: [CommentSchema],
+    file:{
+      type: String, // Store the URL or file path of the profile picture
+      default: '',
 
+    },
+    createdAt: { type: Date, default: Date.now },
+    author: { 
+      type: Schema.Types.ObjectId, 
+      ref: 'Profile'  // Reference the Profile model, not User
+    },
 
     likedBy: [
       {

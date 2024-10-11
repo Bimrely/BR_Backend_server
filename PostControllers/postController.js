@@ -2722,7 +2722,10 @@ export const getallIssue = async (req, res) => {
     // Fetch paginated data
     const issue = await Issue.find()
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .populate('author', 'firstName lastName profilePicture')  // Dynamically fetch author details
+      .exec();
+
 
     const totalPages = Math.ceil(totalItems / limit);
 
@@ -2753,22 +2756,33 @@ export const createIssue = async (req, res) => {
   }
 
 
-  const att = {
-    name: file.originalname,
-    fileInfo:{
-      size: file.size,
-      mimetype: file.mimetype,
-      location: file.location,
-    },
-    fileBucket: file.bucket,
-    fileKey: file.key,
-    location: file.location,
-    contentType: file.mimetype,
-};
+//   const att = {
+//     name: file.originalname,
+//     fileInfo:{
+//       size: file.size,
+//       mimetype: file.mimetype,
+//       location: file.location,
+//     },
+//     fileBucket: file.bucket,
+//     fileKey: file.key,
+//     location: file.location,
+//     contentType: file.mimetype,
+// };
+
+const result = await cloudinary.uploader.upload(file.path, {
+  folder: 'Issue', // Optional folder organization in Cloudinary
+});
+
 
 const user = await User.findById(userId);
 if (!user) {
   return res.status(404).json({ message: 'User not found' });
+}
+
+
+const profile = await Profile.findOne({ userId });
+if (!profile) {
+  return res.status(404).json({ message: 'Profile not found' });
 }
 
 
@@ -2777,16 +2791,23 @@ if (!user) {
   
   const issue = new Issue({
     text:text,
-    file:att,
-    firstName: user.firstName,
-    lastName: user.lastName,
+    file:result.secure_url,
+    // firstName: user.firstName,
+    // lastName: user.lastName,
     userId: req.userId,
+    // profilePicture: profile.profilePicture,
+    author: profile._id  
   });
 
   await issue.save();
 
+      const populatedIssue = await Issue.findById(issue._id)
+      .populate('author', 'firstName lastName profilePicture')
+      .exec();
+  await issue.save();
+
   res.status(201).json({
-    issue,
+    issue:populatedIssue,
     message: "succsessfully created",
   });
 

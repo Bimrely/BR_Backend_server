@@ -227,9 +227,9 @@ router.post('/run-prompt', handleRunPrompt);
 router.get("/issues", auth, getallIssue);
 router.post(
   "/create-issue",
-  auth,
+  auth, upload.single("file"),
   createIssue);
-router.put("/update-issue/:id", auth, updateIssue);
+router.put("/update-issue/:id", auth,  upload.single("file"), updateIssue);
 router.delete("/delete-issue/:id",auth, deleteIssue);
 
 
