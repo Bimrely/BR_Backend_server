@@ -2572,7 +2572,9 @@ export const getallJob = async (req, res) => {
     // Fetch paginated data
     const job = await Job.find()
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .populate('author', 'firstName lastName profilePicture')  // Dynamically fetch author details
+      .exec();
 
     const totalPages = Math.ceil(totalItems / limit);
 
