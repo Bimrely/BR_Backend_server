@@ -2639,17 +2639,22 @@ if (!profile) {
   const job = new Job({
     text:text,
     file:result.secure_url,
-    firstName: user.firstName,
-    lastName: user.lastName,
     userId: req.userId,
-    profilePicture: profile.profilePicture,
+    // profilePicture: profile.profilePicture,
+    author: profile._id  
   });
 
   await job.save();
 
+  
+const populatedArticle = await Job.findById(job._id)
+.populate('author', 'firstName lastName profilePicture')
+.exec();
+
+
   res.status(201).json({
     url: result.secure_ur,
-    job,
+    job:populatedArticle,
     message: "succsessfully created",
   });
 };
