@@ -3253,7 +3253,10 @@ export const getallLearn = async (req, res) => {
     // Fetch paginated data
     const learn = await Learn.find()
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .populate('author', 'firstName lastName profilePicture')  // Dynamically fetch author details
+      .exec();
+
 
     const totalPages = Math.ceil(totalItems / limit);
 
@@ -3297,27 +3300,42 @@ export const createLearn = async (req, res) => {
     contentType: file.mimetype,
 };
 
+const result = await cloudinary.uploader.upload(file.path, {
+  folder: 'Learn', // Optional folder organization in Cloudinary
+});
+
 const user = await User.findById(userId);
 if (!user) {
   return res.status(404).json({ message: 'User not found' });
 }
 
 
+const profile = await Profile.findOne({ userId });
+if (!profile) {
+  return res.status(404).json({ message: 'Profile not found' });
+}
+
 
   
   
   const learn = new Learn({
     text:text,
-    file:att,
-    firstName: user.firstName,
-    lastName: user.lastName,
+    file:result.secure_url,
     userId: req.userId,
+    // profilePicture: profile.profilePicture,
+    author: profile._id  
   });
 
   await learn.save();
 
+  
+const populatedLearn = await Learn.findById(learn._id)
+.populate('author', 'firstName lastName profilePicture')
+.exec();
+
+
   res.status(201).json({
-    learn,
+    learn:populatedLearn,
     message: "succsessfully created",
   });
 };

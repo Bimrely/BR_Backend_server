@@ -251,10 +251,10 @@ router.delete("/delete-issue/:id",auth, deleteIssue);
 router.get("/learn", auth, getallLearn);
 router.post(
   "/create-learn",
-  auth,
+  auth,upload.single("file"),
   createLearn
 );
-router.put("/update-learn/:id", auth, updateLearn);
+router.put("/update-learn/:id", auth, upload.single("file"),updateLearn);
 
 router.delete("/delete-learn/:id", auth, deleteLearn);
 
