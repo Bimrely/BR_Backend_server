@@ -234,6 +234,31 @@ router.put("/update-issue/:id", auth,  upload.single("file"), updateIssue);
 router.delete("/delete-issue/:id",auth, deleteIssue);
 
 
+// Like an Issue
+
+router.put('/issues/:issueId',auth, likeIssue);
+
+router.put('/issues/:issueId/comments/:commentId/like',auth,likeCommentIssue);
+
+
+router.delete('/profiles/:userId/shared-issues/:issueId', auth, deleteSharedIssue);
+
+// Share an Issue
+router.post('/issues/:issueId/share', auth, shareIssue);
+
+router.delete('/issues/:issueId/:commentId/delete',auth,deleteCommentIssue);
+
+
+
+// update comment //
+
+router.put('/issues/:issueId/:commentId/update',auth,updateCommentIssue);
+
+
+
+// Comment on an Issue
+router.post('/issues/:issueId/comment',auth, commentIssue);
+
 
 
 
@@ -365,31 +390,6 @@ router.post('/articles/comments/:commentId/:articleId/replies',auth,replyComment
 // nested reply//
 router.post('/articles/:articleId/comments/:commentId/replies/:replyId',auth, nestedReply);
 
-
-// Like an Issue
-
-router.put('/issues/:issueId',auth, likeIssue);
-
-router.put('/issues/:issueId/comments/:commentId/like',auth,likeCommentIssue);
-
-
-router.delete('/profiles/:userId/shared-issues/:issueId', auth, deleteSharedIssue);
-
-// Share an Issue
-router.post('/issues/:issueId/share', auth, shareIssue);
-
-router.delete('/issues/:issueId/:commentId/delete',auth,deleteCommentIssue);
-
-
-
-// update comment //
-
-router.put('/issues/:issueId/:commentId/update',auth,updateCommentIssue);
-
-
-
-// Comment on an Issue
-router.post('/issues/:issueId/comment',auth, commentIssue);
 
 
 

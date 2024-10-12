@@ -1617,7 +1617,13 @@ if (comment.userId.toString() !== userId) {
   await notification.save();
 
   // Emit socket event to the article owner
-  io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
+  pusher.trigger('issue-channel', 'like-issue-comment', {
+    issueId,
+    userId,
+    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss comment.`,
+  });
+
+  // io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
 }
 
 
@@ -1704,7 +1710,13 @@ export const likeIssue = async (req, res) => {
   await notification.save();
 
   // Emit socket event to the article owner
-  io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
+  pusher.trigger('issue-channel', 'like-issue', {
+    issueId,
+    userId,
+    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss issue.`,
+  });
+
+  // io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
 }
 
     // Check if the user has already liked the article
@@ -1800,7 +1812,14 @@ export const commentIssue = async (req, res) => {
   await notification.save();
 
   // Emit socket event to the article owner
-  io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
+    
+  pusher.trigger('issue-channel', 'new-comment', {
+    issueId,
+    userId,
+    commentText,
+    message: `User ${userId} commented on article ${issueId}.`,
+  });
+  // io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
 }
 
 await issue.save();
@@ -1928,7 +1947,13 @@ export const shareIssue = async (req, res) => {
       await notification.save();
     
       // Emit socket event to the article owner
-      io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
+      // io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
+      pusher.trigger('issue-channel', 'share-issue', {
+        issueId,
+        userId,
+        message: `User ${userId} shared issue ${issueId}.`,
+      });
+    
     }
 
     // Update the article's share count
