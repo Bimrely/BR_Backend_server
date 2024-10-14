@@ -175,7 +175,7 @@ export const SignIn = async(req, res, next)=>{
         .populate('sharedIssues')
         .populate('sharedJobs')
         .populate('sharedLearns')
-
+        .populate('author', 'firstName lastName profilePicture');  
         if (!userProfile) {
             return res.status(404).json({ message: 'Profile not found' });
         }
