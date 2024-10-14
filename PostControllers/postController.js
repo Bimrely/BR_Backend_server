@@ -2143,29 +2143,29 @@ await learn.save();
 
 
 
-// Share an Learn
-
 export const shareLearn = async (req, res) => {
   try {
     const { learnId } = req.params;
     const userId = req.userId; // Assuming you get the userId from the authenticated user
 
-    // Check if the article exists
+    // Check if the learn exists
     const learn = await Learn.findById(learnId);
     if (!learn) {
-      return res.status(404).json({ message: 'learn not found' });
+      return res.status(404).json({ message: 'Learn not found' });
     }
 
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
     // Create a new share record (assuming you have a Share schema)
     const share = new Share({ user: userId, learn: learnId });
     await share.save();
 
-    if (learn.userId !== userId) {
-      // Create notification only if the article is not liked by its oWWWWWwner
+    // Ensure that learn.userId is defined before calling .toString()
+    if (learn.userId && learn.userId.toString() !== userId) {
+      // Create notification only if the learn is not shared by its owner
       const notification = new Notification({
         user: learn.userId,
         type: 'share',
@@ -2175,39 +2175,98 @@ export const shareLearn = async (req, res) => {
     
       await notification.save();
 
-
       pusher.trigger('learn-channel', 'share-learn', {
         learnId,
         userId,
         message: `User ${userId} shared learn ${learn}.`,
       });
-    
-    
-
-    
-      // Emit socket event to the article owner
-      // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
     }
 
-    // Update the article's share count
+    // Update the learn's share count
     const updatedLearn = await Learn.findByIdAndUpdate(learnId, { $inc: { shares: 1 } }, { new: true });
 
     // Check if the user's profile exists
-    const profile = await Profile.findOne({ userId: userId }); // Use userId field correctly
+    const profile = await Profile.findOne({ userId: userId });
     if (!profile) {
       return res.status(404).json({ message: 'User profile not found' });
     }
 
-    // Update the user's profile to include the shared article
-    profile.sharedLearns.addToSet(learnId); // Add articleId to sharedArticles array
+    // Update the user's profile to include the shared learn
+    profile.sharedLearns.addToSet(learnId); // Add learnId to sharedLearns array
     const updatedProfile = await profile.save();
 
-    res.status(200).json({ message: 'learn shared successfully.', sharedLearn: updatedLearn, updatedProfile });
+    res.status(200).json({ message: 'Learn shared successfully.', sharedLearn: updatedLearn, updatedProfile });
   } catch (error) {
-    console.error('Error sharing article:', error);
+    console.error('Error sharing learn:', error);
     res.status(500).json({ message: 'An error occurred while sharing the learn.' });
   }
 };
+
+// Share an Learn
+
+// export const shareLearn = async (req, res) => {
+//   try {
+//     const { learnId } = req.params;
+//     const userId = req.userId; // Assuming you get the userId from the authenticated user
+
+//     // Check if the article exists
+//     const learn = await Learn.findById(learnId);
+//     if (!learn) {
+//       return res.status(404).json({ message: 'learn not found' });
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+//     // Create a new share record (assuming you have a Share schema)
+//     const share = new Share({ user: userId, learn: learnId });
+//     await share.save();
+
+//     if (learn.userId.toString() !== userId) {
+//       // Create notification only if the article is not liked by its owner
+//       const notification = new Notification({
+//         user: learn.userId,
+//         type: 'share',
+//         learn: learn._id,
+//         message: `${user.firstName} ${user.lastName} shared your learn.`,
+//       });
+    
+//       await notification.save();
+
+
+//       pusher.trigger('learn-channel', 'share-learn', {
+//         learnId,
+//         userId,
+//         message: `User ${userId} shared learn ${learn}.`,
+//       });
+    
+    
+
+    
+//       // Emit socket event to the article owner
+//       // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
+//     }
+
+//     // Update the article's share count
+//     const updatedLearn = await Learn.findByIdAndUpdate(learnId, { $inc: { shares: 1 } }, { new: true });
+
+//     // Check if the user's profile exists
+//     const profile = await Profile.findOne({ userId: userId }); // Use userId field correctly
+//     if (!profile) {
+//       return res.status(404).json({ message: 'User profile not found' });
+//     }
+
+//     // Update the user's profile to include the shared article
+//     profile.sharedLearns.addToSet(learnId); // Add articleId to sharedArticles array
+//     const updatedProfile = await profile.save();
+
+//     res.status(200).json({ message: 'learn shared successfully.', sharedLearn: updatedLearn, updatedProfile });
+//   } catch (error) {
+//     console.error('Error sharing article:', error);
+//     res.status(500).json({ message: 'An error occurred while sharing the learn.' });
+//   }
+// };
 
 
 
