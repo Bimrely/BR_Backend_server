@@ -2222,7 +2222,7 @@ export const shareLearn = async (req, res) => {
     const userId = req.userId; // Assuming you get the userId from the authenticated user
 
     // Check if the learn exists
-    const learn = await Learn.findById(learnId);
+    const learn = await Learn.findById(learnId).populate('author', 'firstName lastName profilePicture');
     if (!learn) {
       return res.status(404).json({ message: 'Learn not found' });
     }
