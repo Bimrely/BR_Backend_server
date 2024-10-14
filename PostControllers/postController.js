@@ -2213,14 +2213,12 @@ await learn.save();
  
 };
 
-
-
 export const shareLearn = async (req, res) => {
   try {
     const { learnId } = req.params;
     const userId = req.userId; // Assuming you get the userId from the authenticated user
 
-    // Check if the learn exists
+    // Check if the learn exists and populate the author's details
     const learn = await Learn.findById(learnId).populate('author', 'firstName lastName profilePicture');
     if (!learn) {
       return res.status(404).json({ message: 'Learn not found' });
@@ -2235,6 +2233,7 @@ export const shareLearn = async (req, res) => {
     const share = new Share({ user: userId, learn: learnId });
     await share.save();
 
+    // Ensure that learn.userId is defined before calling .toString()
     if (learn.userId && learn.userId.toString() !== userId) {
       // Create notification only if the learn is not shared by its owner
       const notification = new Notification({
@@ -2243,28 +2242,92 @@ export const shareLearn = async (req, res) => {
         learn: learn._id,
         message: `${user.firstName} ${user.lastName} shared your learn.`,
       });
-
+    
       await notification.save();
 
       pusher.trigger('learn-channel', 'share-learn', {
         learnId,
         userId,
-        message: `User ${userId} shared learn ${learn.text}.`,
+        message: `User ${user.firstName} ${user.lastName} shared learn ${learn.text}.`,
       });
     }
 
-    // Return the shared learn with the populated author's details
-    const sharedLearn = await Learn.findById(learnId).populate('author', 'firstName lastName profilePicture');
+    // Update the learn's share count
+    const updatedLearn = await Learn.findByIdAndUpdate(learnId, { $inc: { shares: 1 } }, { new: true }).populate('author', 'firstName lastName profilePicture');
 
+    // Check if the user's profile exists
+    const profile = await Profile.findOne({ userId: userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'User profile not found' });
+    }
+
+    // Update the user's profile to include the shared learn
+    profile.sharedLearns.addToSet(learnId); // Add learnId to sharedLearns array
+    const updatedProfile = await profile.save();
+
+    // Return the populated learn (with author details) in the response
     res.status(200).json({
       message: 'Learn shared successfully.',
-      sharedLearn,
+      sharedLearn: updatedLearn,
+      updatedProfile
     });
   } catch (error) {
     console.error('Error sharing learn:', error);
     res.status(500).json({ message: 'An error occurred while sharing the learn.' });
   }
 };
+
+
+// export const shareLearn = async (req, res) => {
+//   try {
+//     const { learnId } = req.params;
+//     const userId = req.userId; // Assuming you get the userId from the authenticated user
+
+//     // Check if the learn exists
+//     const learn = await Learn.findById(learnId).populate('author', 'firstName lastName profilePicture');
+//     if (!learn) {
+//       return res.status(404).json({ message: 'Learn not found' });
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     // Create a new share record (assuming you have a Share schema)
+//     const share = new Share({ user: userId, learn: learnId });
+//     await share.save();
+
+//     if (learn.userId && learn.userId.toString() !== userId) {
+//       // Create notification only if the learn is not shared by its owner
+//       const notification = new Notification({
+//         user: learn.userId,
+//         type: 'share',
+//         learn: learn._id,
+//         message: `${user.firstName} ${user.lastName} shared your learn.`,
+//       });
+
+//       await notification.save();
+
+//       pusher.trigger('learn-channel', 'share-learn', {
+//         learnId,
+//         userId,
+//         message: `User ${userId} shared learn ${learn.text}.`,
+//       });
+//     }
+
+//     // Return the shared learn with the populated author's details
+//     const sharedLearn = await Learn.findById(learnId).populate('author', 'firstName lastName profilePicture');
+
+//     res.status(200).json({
+//       message: 'Learn shared successfully.',
+//       sharedLearn,
+//     });
+//   } catch (error) {
+//     console.error('Error sharing learn:', error);
+//     res.status(500).json({ message: 'An error occurred while sharing the learn.' });
+//   }
+// };
 
 
 
