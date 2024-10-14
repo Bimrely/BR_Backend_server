@@ -1979,20 +1979,18 @@ export const shareIssue = async (req, res) => {
 
 
 
-
-// Like an Learn
+// Like a Learn 
 export const likeLearn = async (req, res) => {
   try {
     const { learnId } = req.params;
     const userId = req.userId; // Assuming user ID is available from the authenticated request
 
-    // Fetch the article
+    // Fetch the Learn document
     const learn = await Learn.findById(learnId);
     if (!learn) {
-      return res.status(404).json({ message: 'Article not found' });
+      return res.status(404).json({ message: 'Learn not found' });
     }
 
-    console.log('adhashd')
     // Fetch the user profile details
     const user = await User.findById(userId);
     if (!user) {
@@ -2005,65 +2003,140 @@ export const likeLearn = async (req, res) => {
       lastName: user.lastName,
     };
 
+    // Ensure that learn.userId is defined before calling .toString()
+    if (learn.userId && learn.userId.toString() !== userId) {
+      // Create notification only if the learn is not liked by its owner
+      const notification = new Notification({
+        user: learn.userId,
+        type: 'like',
+        learn: learn._id,
+        message: `${user.firstName} ${user.lastName} liked your learn.`,
+      });
 
- // Create a new notification
- if (learn.userId.toString() !== userId) {
-  // Create notification only if the article is not liked by its owner
-  const notification = new Notification({
-    user: learn.userId,
-    type: 'like',
-    learn: learn._id,
-    message: `${user.firstName} ${user.lastName} liked your learn.`,
-  });
+      await notification.save();
 
-  await notification.save();
+      // Push a notification using Pusher
+      pusher.trigger('learn-channel', 'like-learn', {
+        learnId,
+        userId,
+        message: `${user.firstName} ${user.lastName} liked your learn.`,
+      });
+    }
 
-
-  pusher.trigger('learn-channel', 'like-learn', {
-    learnId,
-    userId,
-    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss learn.`,
-  });
-  // Emit socket event to the article owner
-  // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
-}
-
-    // Check if the user has already liked the article
+    // Check if the user has already liked the learn
     const existingLikeIndex = learn.likedBy.findIndex(
       (likedUser) => likedUser.userId.toString() === userId
     );
 
     if (existingLikeIndex === -1) {
-      // If user hasn't liked the article yet, like it
+      // If user hasn't liked the learn yet, like it
       learn.likedBy.push(userProfile);
       learn.likes += 1;
-           // Emit a socket event that the article was liked
-          //  io.emit('like_article', { articleId, userId });
-           console.log(learnId)
     } else {
-      // If user has already liked the article, unlike it
+      // If user has already liked the learn, unlike it
       learn.likedBy.splice(existingLikeIndex, 1);
       learn.likes -= 1;
-      // Emit a socket event that the article was unliked
-      // io.emit('article_unliked', { articleId, userId });
     }
 
     await learn.save();
-
-    // Emit a socket event to notify clients about the updated like count
-    // emitLikeNotification(articleId, article.likes);
 
     res.status(200).json({
       learnId,
       likes: learn.likes,
       likedBy: learn.likedBy,
-      message: 'Article liked/unliked successfully.',
+      message: 'Learn liked/unliked successfully.',
     });
   } catch (error) {
-    console.error('Error liking article:', error);
-    res.status(500).json({ message: 'An error occurred while liking the article.', error: error.message });
+    console.error('Error liking learn:', error);
+    res.status(500).json({ message: 'An error occurred while liking the learn.', error: error.message });
   }
 };
+
+
+// Like an Learn
+// export const likeLearn = async (req, res) => {
+//   try {
+//     const { learnId } = req.params;
+//     const userId = req.userId; // Assuming user ID is available from the authenticated request
+
+//     // Fetch the article
+//     const learn = await Learn.findById(learnId);
+//     if (!learn) {
+//       return res.status(404).json({ message: 'Article not found' });
+//     }
+
+//     console.log('adhashd')
+//     // Fetch the user profile details
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     const userProfile = {
+//       userId: user._id,
+//       firstName: user.firstName,
+//       lastName: user.lastName,
+//     };
+
+
+//  // Create a new notification
+//  if (learn.userId.toString() !== userId) {
+//   // Create notification only if the article is not liked by its owner
+//   const notification = new Notification({
+//     user: learn.userId,
+//     type: 'like',
+//     learn: learn._id,
+//     message: `${user.firstName} ${user.lastName} liked your learn.`,
+//   });
+
+//   await notification.save();
+
+
+//   pusher.trigger('learn-channel', 'like-learn', {
+//     learnId,
+//     userId,
+//     message: `${user.firstName} ${user.lastName} liked yoursSSSSsss learn.`,
+//   });
+//   // Emit socket event to the article owner
+//   // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
+// }
+
+//     // Check if the user has already liked the article
+//     const existingLikeIndex = learn.likedBy.findIndex(
+//       (likedUser) => likedUser.userId.toString() === userId
+//     );
+
+//     if (existingLikeIndex === -1) {
+//       // If user hasn't liked the article yet, like it
+//       learn.likedBy.push(userProfile);
+//       learn.likes += 1;
+//            // Emit a socket event that the article was liked
+//           //  io.emit('like_article', { articleId, userId });
+//            console.log(learnId)
+//     } else {
+//       // If user has already liked the article, unlike it
+//       learn.likedBy.splice(existingLikeIndex, 1);
+//       learn.likes -= 1;
+//       // Emit a socket event that the article was unliked
+//       // io.emit('article_unliked', { articleId, userId });
+//     }
+
+//     await learn.save();
+
+//     // Emit a socket event to notify clients about the updated like count
+//     // emitLikeNotification(articleId, article.likes);
+
+//     res.status(200).json({
+//       learnId,
+//       likes: learn.likes,
+//       likedBy: learn.likedBy,
+//       message: 'Article liked/unliked successfully.',
+//     });
+//   } catch (error) {
+//     console.error('Error liking article:', error);
+//     res.status(500).json({ message: 'An error occurred while liking the article.', error: error.message });
+//   }
+// };
 
 
 
@@ -2109,7 +2182,7 @@ export const commentLearn = async (req, res) => {
     });
 
  // Create a new notification
- if (learn.userId.toString() !== userId) {
+ if (learn.userId && learn.userId.toString() !== userId) {
   // Create notification only if the article is not liked by its owner
   const notification = new Notification({
     user: learn.userId,
