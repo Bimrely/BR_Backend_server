@@ -2216,7 +2216,7 @@ await learn.save();
 export const shareLearn = async (req, res) => {
   try {
     const { learnId } = req.params;
-    const userId = req.userId; // Assuming you get the userId from the authenticated user
+    const userId = req.userId;
 
     // Check if the learn exists and populate the author's details
     const learn = await Learn.findById(learnId).populate('author', 'firstName lastName profilePicture');
@@ -2229,47 +2229,45 @@ export const shareLearn = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Create a new share record (assuming you have a Share schema)
+    // Create a new share record
     const share = new Share({ user: userId, learn: learnId });
     await share.save();
 
-    // Ensure that learn.userId is defined before calling .toString()
     if (learn.userId && learn.userId.toString() !== userId) {
-      // Create notification only if the learn is not shared by its owner
       const notification = new Notification({
         user: learn.userId,
         type: 'share',
         learn: learn._id,
         message: `${user.firstName} ${user.lastName} shared your learn.`,
       });
-    
       await notification.save();
 
       pusher.trigger('learn-channel', 'share-learn', {
         learnId,
         userId,
-        message: `User ${user.firstName} ${user.lastName} shared learn ${learn.text}.`,
+        message: `User ${userId} shared learn ${learn.text}.`,
       });
     }
 
     // Update the learn's share count
-    const updatedLearn = await Learn.findByIdAndUpdate(learnId, { $inc: { shares: 1 } }, { new: true }).populate('author', 'firstName lastName profilePicture');
+    const updatedLearn = await Learn.findByIdAndUpdate(learnId, { $inc: { shares: 1 } }, { new: true })
+      .populate('author', 'firstName lastName profilePicture');  // Populate the author field
 
     // Check if the user's profile exists
-    const profile = await Profile.findOne({ userId: userId });
+    const profile = await Profile.findOne({ userId });
     if (!profile) {
       return res.status(404).json({ message: 'User profile not found' });
     }
 
     // Update the user's profile to include the shared learn
-    profile.sharedLearns.addToSet(learnId); // Add learnId to sharedLearns array
+    profile.sharedLearns.addToSet(learnId);
     const updatedProfile = await profile.save();
 
-    // Return the populated learn (with author details) in the response
+    // Return the populated learn with author details
     res.status(200).json({
       message: 'Learn shared successfully.',
-      sharedLearn: updatedLearn,
-      updatedProfile
+      sharedLearn: updatedLearn,  // Ensure this includes the author details
+      updatedProfile,
     });
   } catch (error) {
     console.error('Error sharing learn:', error);
