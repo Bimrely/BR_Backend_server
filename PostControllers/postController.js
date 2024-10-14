@@ -2164,8 +2164,8 @@ export const shareLearn = async (req, res) => {
     const share = new Share({ user: userId, learn: learnId });
     await share.save();
 
-    if (learn.userId.toString() !== userId) {
-      // Create notification only if the article is not liked by its owner
+    if (learn.userId !== userId) {
+      // Create notification only if the article is not liked by its oWWWWWwner
       const notification = new Notification({
         user: learn.userId,
         type: 'share',
