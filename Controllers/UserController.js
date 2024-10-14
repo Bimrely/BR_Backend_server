@@ -161,31 +161,63 @@ export const SignIn = async(req, res, next)=>{
 // };
 
 
+export const getProfile = async (req, res) => {
+  const userId = req.userId; // Assuming you're using authentication middleware and user ID is available in req.userId
+
+  try {
+    const userProfile = await Profile.findOne({ userId })
+      .populate({
+        path: 'sharedArticles',
+        populate: { path: 'author', select: 'firstName lastName profilePicture' }
+      })
+      .populate({
+        path: 'sharedIssues',
+        populate: { path: 'author', select: 'firstName lastName profilePicture' }
+      })
+      .populate({
+        path: 'sharedJobs',
+        populate: { path: 'author', select: 'firstName lastName profilePicture' }
+      })
+      .populate({
+        path: 'sharedLearns',
+        populate: { path: 'author', select: 'firstName lastName profilePicture' }
+      });
+
+    if (!userProfile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    res.status(200).json({ userProfile });
+  } catch (error) {
+    console.error('Error retrieving user profile:', error);
+    res.status(500).json({ message: 'Error retrieving user profile', error });
+  }
+};
 
 
 
 
   // Get user profile By Id//
-  export const getProfile = async (req, res) => {
-    const userId = req.userId; // Assuming you're using authentication middleware and user ID is available in req.user.id
+//   export const getProfile = async (req, res) => {
+//     const userId = req.userId; // Assuming you're using authentication middleware and user ID is available in req.user.id
 
-    try {
-        const userProfile = await Profile.findOne({ userId })  
-        .populate('sharedArticles')
-        .populate('sharedIssues')
-        .populate('sharedJobs')
-        .populate('sharedLearns')
+//     try {
+//         const userProfile = await Profile.findOne({ userId })  
+//         .populate('sharedArticles')
+//         .populate('sharedIssues')
+//         .populate('sharedJobs')
+//         .populate('sharedLearns')
        
-        if (!userProfile) {
-            return res.status(404).json({ message: 'Profile not found' });
-        }
+//         if (!userProfile) {
+//             return res.status(404).json({ message: 'Profile not found' });
+//         }
 
-        res.status(200).json({ userProfile
-         });
-    } catch (error) {
-        res.status(500).json({ message: 'Error retrieving user profile', error });
-    }
-};
+//         res.status(200).json({ userProfile
+//          });
+//     } catch (error) {
+//         res.status(500).json({ message: 'Error retrieving user profile', error });
+//     }
+// };
 
   // export const getProfile = async(req,res)=>{
 
