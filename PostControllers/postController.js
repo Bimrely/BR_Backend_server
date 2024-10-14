@@ -2018,8 +2018,14 @@ export const likeLearn = async (req, res) => {
 
   await notification.save();
 
+
+  pusher.trigger('learn-channel', 'like-learn', {
+    learnId,
+    userId,
+    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss learn.`,
+  });
   // Emit socket event to the article owner
-  io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
+  // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
 }
 
     // Check if the user has already liked the article
@@ -2113,9 +2119,14 @@ export const commentLearn = async (req, res) => {
   });
 
   await notification.save();
-
+  pusher.trigger('learn-channel', 'new-comment', {
+    learnId,
+    userId,
+    commentText,
+    message: `User ${userId} commented on article ${learnId}.`,
+  });
   // Emit socket event to the article owner
-  io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
+  // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
 }
 
 await learn.save();
@@ -2163,9 +2174,19 @@ export const shareLearn = async (req, res) => {
       });
     
       await notification.save();
+
+
+      pusher.trigger('learn-channel', 'share-learn', {
+        learnId,
+        userId,
+        message: `User ${userId} shared learn ${learn}.`,
+      });
+    
+    
+
     
       // Emit socket event to the article owner
-      io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
+      // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
     }
 
     // Update the article's share count
@@ -3476,8 +3497,14 @@ if (comment.userId.toString() !== userId) {
 
   await notification.save();
 
+  pusher.trigger('learn-channel', 'like-learn-comment', {
+    learnId,
+    userId,
+    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss comment.`,
+  });
+
   // Emit socket event to the article owner
-  io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
+  // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
 }
 
 
