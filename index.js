@@ -4,8 +4,8 @@ import bodyParser from 'body-parser';
 import 'dotenv/config';
 import { connectDB } from './db.js';
 import routesForApp from './Routes.js';
-import http from 'http';
-import { Server } from 'socket.io';
+// import http from 'http';
+// import { Server } from 'socket.io';
 
 const app = express();
 
