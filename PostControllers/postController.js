@@ -2139,79 +2139,137 @@ export const likeLearn = async (req, res) => {
 // };
 
 
-
-// Comment on an  Learn
 export const commentLearn = async (req, res) => {
-
   try {
     const { learnId } = req.params;
+    const { text } = req.body;
+    const userId = req.userId;  // Get the logged-in user's ID from auth middleware
+
+    // Ensure the user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Create a new comment and store the userId reference
+    const comment = new Comment({
+      userId: req.userId,
+      learn: learnId,
+      text: text,   // Store the comment text
+    });
+    await comment.save();
+
+    // Add the comment to the learn document
+    const learn = await Learn.findByIdAndUpdate(
+      learnId,
+      { $push: { comments: comment } },   // Push the comment into the comments array
+      { new: true }                       // Return the updated learn document
+    ).populate({
+      path: 'comments.author',   // Populate the userId in the comments
+      select: 'firstName lastName profilePicture',  // Select the relevant fields
+    });
+
+    // Create a notification if the comment isn't from the learn owner
+    if (learn.userId && learn.userId.toString() !== userId) {
+      const notification = new Notification({
+        user: learn.userId,
+        type: 'comment',
+        learn: learn._id,
+        message: `${user.firstName} ${user.lastName} commented on your learn.`,
+      });
+      await notification.save();
+
+      // Trigger a Pusher event
+      pusher.trigger('learn-channel', 'new-comment', {
+        learnId,
+        userId,
+        commentText: text,
+        message: `User ${userId} commented on article ${learnId}.`,
+      });
+    }
+
+    res.status(200).json({ message: 'Comment added successfully.', learn });
+  } catch (error) {
+    console.error('Error commenting on learn:', error);
+    res.status(500).json({ message: 'An error occurred while commenting on the learn.' });
+  }
+};
 
 
-    const { text} = req.body;
-    const userId = req.userId; 
+
+
+// Comment on an  Learn
+// export const commentLearn = async (req, res) => {
+
+//   try {
+//     const { learnId } = req.params;
+
+
+//     const { text} = req.body;
+//     const userId = req.userId; 
 
   
     
 
 
 
-  const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
+//   const user = await User.findById(userId);
+//   if (!user) {
+//     return res.status(404).json({ message: 'User not found' });
+//   }
 
 
-    // Create a new comment
-    const comment = new Comment({ userId:req.userId, learn: learnId, text });
-    await comment.save();
+//     // Create a new comment
+//     const comment = new Comment({ userId:req.userId, learn: learnId, text });
+//     await comment.save();
   
-    const learn = await Learn.findByIdAndUpdate(learnId, {
+//     const learn = await Learn.findByIdAndUpdate(learnId, {
       
-        $push: { comments:{
-            _id: comment._id, 
-            text: comment.text,
-           userId:comment.userId,
-           userId: user._id,
-           firstName: user.firstName,
-           lastName: user.lastName,
-          //  file:comment.file
-        } 
+//         $push: { comments:{
+//             _id: comment._id, 
+//             text: comment.text,
+//            userId:comment.userId,
+//            userId: user._id,
+//            firstName: user.firstName,
+//            lastName: user.lastName,
+//           //  file:comment.file
+//         } 
                  
-             },
+//              },
           
-    });
+//     });
 
- // Create a new notification
- if (learn.userId && learn.userId.toString() !== userId) {
-  // Create notification only if the article is not liked by its owner
-  const notification = new Notification({
-    user: learn.userId,
-    type: 'comment',
-    learn: learn._id,
-    message: `${user.firstName} ${user.lastName} comment on your learn.`,
-  });
+//  // Create a new notification
+//  if (learn.userId && learn.userId.toString() !== userId) {
+//   // Create notification only if the article is not liked by its owner
+//   const notification = new Notification({
+//     user: learn.userId,
+//     type: 'comment',
+//     learn: learn._id,
+//     message: `${user.firstName} ${user.lastName} comment on your learn.`,
+//   });
 
-  await notification.save();
-  pusher.trigger('learn-channel', 'new-comment', {
-    learnId,
-    userId,
-    commentText,
-    message: `User ${userId} commented on article ${learnId}.`,
-  });
-  // Emit socket event to the article owner
-  // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
-}
+//   await notification.save();
+//   pusher.trigger('learn-channel', 'new-comment', {
+//     learnId,
+//     userId,
+//     commentText,
+//     message: `User ${userId} commented on article ${learnId}.`,
+//   });
+//   // Emit socket event to the article owner
+//   // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
+// }
 
-await learn.save();
-    res.status(200).json({ message: 'Comment added successfully.',learn});
-  } catch (error) {
-    console.error('Error commenting on article:', error);
-    res.status(500).json({ message: 'An error occurred while commenting on the learn.' });
-  }
+// await learn.save();
+//     res.status(200).json({ message: 'Comment added successfully.',learn});
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the learn.' });
+//   }
 
 
  
-};
+// };
 
 export const shareLearn = async (req, res) => {
   try {
