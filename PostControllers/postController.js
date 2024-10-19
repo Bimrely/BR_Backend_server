@@ -3588,8 +3588,11 @@ export const getallLearn = async (req, res) => {
       .skip(skip)
       .limit(Number(limit))
       .populate('author', 'firstName lastName profilePicture')  // Dynamically fetch author details
+      .populate({
+        path: 'comments.userId',  // Populate each comment's userId (Profile details)
+        select: 'firstName lastName profilePicture',  // Only return necessary fields
+      })
       .exec();
-
 
     const totalPages = Math.ceil(totalItems / limit);
 
