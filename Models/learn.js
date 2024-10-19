@@ -14,9 +14,9 @@ export const files = new Schema({
 
 
 const CommentSchema = new Schema({
-  author: { 
-    type: Schema.Types.ObjectId, 
-    ref: 'Profile'  // Reference the Profile model, not User
+  userId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "Profile"  // Reference to the Profile model, not User
   },
   text: String,
   // firstName: String,

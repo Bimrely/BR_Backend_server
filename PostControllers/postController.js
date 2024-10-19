@@ -2138,22 +2138,21 @@ export const likeLearn = async (req, res) => {
 //   }
 // };
 
-
 export const commentLearn = async (req, res) => {
   try {
     const { learnId } = req.params;
     const { text } = req.body;
     const userId = req.userId;  // Get the logged-in user's ID from auth middleware
 
-    // Ensure the user exists
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    // Find the user's profile (since you're using the Profile schema)
+    const userProfile = await Profile.findOne({ userId });
+    if (!userProfile) {
+      return res.status(404).json({ message: 'User profile not found' });
     }
 
-    // Create a new comment and store the userId reference
+    // Create a new comment and store the profile's reference (not userId)
     const comment = new Comment({
-      userId: req.userId,
+      userId: userProfile._id,  // Store profileId in the comment
       learn: learnId,
       text: text,   // Store the comment text
     });
@@ -2165,28 +2164,9 @@ export const commentLearn = async (req, res) => {
       { $push: { comments: comment } },   // Push the comment into the comments array
       { new: true }                       // Return the updated learn document
     ).populate({
-      path: 'comments.author',   // Populate the userId in the comments
-      select: 'firstName lastName profilePicture',  // Select the relevant fields
+      path: 'comments.userId',   // Populate the profileId in the comments
+      select: 'firstName lastName profilePicture',  // Select the relevant profile fields
     });
-
-    // Create a notification if the comment isn't from the learn owner
-    if (learn.userId && learn.userId.toString() !== userId) {
-      const notification = new Notification({
-        user: learn.userId,
-        type: 'comment',
-        learn: learn._id,
-        message: `${user.firstName} ${user.lastName} commented on your learn.`,
-      });
-      await notification.save();
-
-      // Trigger a Pusher event
-      pusher.trigger('learn-channel', 'new-comment', {
-        learnId,
-        userId,
-        commentText: text,
-        message: `User ${userId} commented on article ${learnId}.`,
-      });
-    }
 
     res.status(200).json({ message: 'Comment added successfully.', learn });
   } catch (error) {
@@ -2194,7 +2174,6 @@ export const commentLearn = async (req, res) => {
     res.status(500).json({ message: 'An error occurred while commenting on the learn.' });
   }
 };
-
 
 
 
