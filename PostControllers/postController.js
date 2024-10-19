@@ -2138,42 +2138,47 @@ export const likeLearn = async (req, res) => {
 //   }
 // };
 
+
 export const commentLearn = async (req, res) => {
   try {
     const { learnId } = req.params;
     const { text } = req.body;
     const userId = req.userId;  // Get the logged-in user's ID from auth middleware
 
-    // Find the user's profile (since you're using the Profile schema)
-    const userProfile = await Profile.findOne({ userId });
-    if (!userProfile) {
-      return res.status(404).json({ message: 'User profile not found' });
+    // Find the user's profile based on userId
+    const profile = await Profile.findOne({ userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
     }
 
-    // Create a new comment and store the profile's reference (not userId)
+    // Create a new comment with the correct userId (profileId)
     const comment = new Comment({
-      userId: userProfile._id,  // Store profileId in the comment
-      learn: learnId,
-      text: text,   // Store the comment text
+      userId: profile._id,  // Set userId to the Profile reference
+      text: text,  // Add the comment text
     });
     await comment.save();
 
     // Add the comment to the learn document
     const learn = await Learn.findByIdAndUpdate(
       learnId,
-      { $push: { comments: comment } },   // Push the comment into the comments array
-      { new: true }                       // Return the updated learn document
+      { $push: { comments: comment } },   // Add the new comment to comments array
+      { new: true }                       // Return the updated Learn document
     ).populate({
-      path: 'comments.userId',   // Populate the profileId in the comments
-      select: 'firstName lastName profilePicture',  // Select the relevant profile fields
+      path: 'comments.userId',  // Populate comment authors' profiles
+      select: 'firstName lastName profilePicture',  // Only return the necessary fields
     });
 
-    res.status(200).json({ message: 'Comment added successfully.', learn });
+    res.status(200).json({
+      message: 'Comment added successfully.',
+      learn,
+    });
   } catch (error) {
     console.error('Error commenting on learn:', error);
     res.status(500).json({ message: 'An error occurred while commenting on the learn.' });
   }
 };
+
+
 
 
 
@@ -3642,14 +3647,8 @@ export const createLearn = async (req, res) => {
 
     // Populate the author details after saving the learn entry
     const populatedLearn = await Learn.findById(learn._id)
-    .populate({
-      path: 'author',  // Populate learn author details
-      select: 'firstName lastName profilePicture',
-    })
-    .populate({
-      path: 'comments.userId',  // Populate comment author details
-      select: 'firstName lastName profilePicture',  // Select only relevant fields
-    });
+      .populate('author', 'firstName lastName profilePicture')
+      .exec();
 
     res.status(201).json({
       url: result.secure_url,
