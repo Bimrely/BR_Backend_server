@@ -3642,8 +3642,14 @@ export const createLearn = async (req, res) => {
 
     // Populate the author details after saving the learn entry
     const populatedLearn = await Learn.findById(learn._id)
-      .populate('author', 'firstName lastName profilePicture')
-      .exec();
+    .populate({
+      path: 'author',  // Populate learn author details
+      select: 'firstName lastName profilePicture',
+    })
+    .populate({
+      path: 'comments.userId',  // Populate comment author details
+      select: 'firstName lastName profilePicture',  // Select only relevant fields
+    });
 
     res.status(201).json({
       url: result.secure_url,
