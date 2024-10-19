@@ -725,108 +725,166 @@ export const deleteReply = async (req, res) => {
 
 
 
-
-
-
-
-
 // Comment on an article
 export const commentArticle = async (req, res) => {
   try {
     const { articleId } = req.params;
-    // const {userId} = req.params;
-    console.log(articleId);
-    // console.log(userId); 
+    const { text } = req.body;
+    const userId = req.userId;  // Get the logged-in user's ID
 
-    const { text} = req.body;
-    const userId = req.userId; 
-    // const file  = req.file;
-  
-    
-    // if (!file || !file.originalname) {
-    //   return res.status(400).json({ message: 'Invalid file data' });
-    // }
-  
-  
-  //   const att = {
-  //     name: file.originalname,
-  //     fileInfo:{
-  //       size: file.size,
-  //       mimetype: file.mimetype,
-  //       location: file.location,
-  //     },
-  //     fileBucket: file.bucket,
-  //     fileKey: file.key,
-  //     location: file.location,
-  //     contentType: file.mimetype,
-  // };
+    // Find the user's profile based on userId
+    const profile = await Profile.findOne({ userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
 
-  // const commentfile = new Comment({
-  // file:att,
-  // text,
-  //   userId: req.userId,
-  // });
-   
-
-
-  const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
-
-
-    // Create a new comment
-    const comment = new Comment({ userId:req.userId, article: articleId, text });
-    await comment.save();
-  
-    const article = await Article.findByIdAndUpdate(articleId, {
-      
-        $push: { comments:{
-            _id: comment._id, 
-            text: comment.text,
-           userId:comment.userId,
-           userId: user._id,
-           firstName: user.firstName,
-           lastName: user.lastName,
-          //  file:comment.file
-        } 
-                 
-             },
-          
+    // Create a new comment and set the userId to the Profile ID
+    const comment = new Comment({
+      userId: profile._id,  // Set userId to the Profile reference
+      article: articleId,
+      text,
     });
 
- // Create a new notification
- if (article.userId.toString() !== userId) {
-  // Create notification only if the article is not liked by its owner
-  const notification = new Notification({
-    user: article.userId,
-    type: 'comment',
-    article: article._id,
-    message: `${user.firstName} ${user.lastName} comment on your article.`,
-  });
+    await comment.save();
 
-  await notification.save();
-  
-  
-  pusher.trigger('article-channel', 'new-comment', {
-    articleId,
-    userId,
-    commentText,
-    message: `User ${userId} commented on article ${articleId}.`,
-  });
+    // Add the comment to the article's comments array
+    const article = await Article.findByIdAndUpdate(
+      articleId,
+      { $push: { comments: comment } },   // Push the comment into the comments array
+      { new: true }                       // Return the updated article
+    )
+    .populate({
+      path: 'comments.userId',  // Populate the comment author (Profile details)
+      select: 'firstName lastName profilePicture',  // Only select necessary fields
+    });
 
+    // Create a notification if the comment is not by the article owner
+    if (article.userId.toString() !== userId) {
+      const notification = new Notification({
+        user: article.userId,  // Article owner
+        type: 'comment',
+        article: article._id,
+        message: `${profile.firstName} ${profile.lastName} commented on your article.`,
+      });
 
-  // Emit socket event to the article owner
-  // io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
-}
+      await notification.save();
 
-await article.save();
-    res.status(200).json({ message: 'Comment added successfully.',article});
+      // Trigger Pusher notification
+      pusher.trigger('article-channel', 'new-comment', {
+        articleId,
+        userId,
+        message: `User ${profile.firstName} ${profile.lastName} commented on article ${articleId}.`,
+      });
+    }
+
+    res.status(200).json({ message: 'Comment added successfully.', article });
   } catch (error) {
     console.error('Error commenting on article:', error);
     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
   }
 };
+
+
+
+
+
+// // Comment on an article
+// export const commentArticle = async (req, res) => {
+//   try {
+//     const { articleId } = req.params;
+//     // const {userId} = req.params;
+//     console.log(articleId);
+//     // console.log(userId); 
+
+//     const { text} = req.body;
+//     const userId = req.userId; 
+//     // const file  = req.file;
+  
+    
+//     // if (!file || !file.originalname) {
+//     //   return res.status(400).json({ message: 'Invalid file data' });
+//     // }
+  
+  
+//   //   const att = {
+//   //     name: file.originalname,
+//   //     fileInfo:{
+//   //       size: file.size,
+//   //       mimetype: file.mimetype,
+//   //       location: file.location,
+//   //     },
+//   //     fileBucket: file.bucket,
+//   //     fileKey: file.key,
+//   //     location: file.location,
+//   //     contentType: file.mimetype,
+//   // };
+
+//   // const commentfile = new Comment({
+//   // file:att,
+//   // text,
+//   //   userId: req.userId,
+//   // });
+   
+
+
+//   const user = await User.findById(userId);
+//   if (!user) {
+//     return res.status(404).json({ message: 'User not found' });
+//   }
+
+
+//     // Create a new comment
+//     const comment = new Comment({ userId:req.userId, article: articleId, text });
+//     await comment.save();
+  
+//     const article = await Article.findByIdAndUpdate(articleId, {
+      
+//         $push: { comments:{
+//             _id: comment._id, 
+//             text: comment.text,
+//            userId:comment.userId,
+//            userId: user._id,
+//            firstName: user.firstName,
+//            lastName: user.lastName,
+//           //  file:comment.file
+//         } 
+                 
+//              },
+          
+//     });
+
+//  // Create a new notification
+//  if (article.userId.toString() !== userId) {
+//   // Create notification only if the article is not liked by its owner
+//   const notification = new Notification({
+//     user: article.userId,
+//     type: 'comment',
+//     article: article._id,
+//     message: `${user.firstName} ${user.lastName} comment on your article.`,
+//   });
+
+//   await notification.save();
+  
+  
+//   pusher.trigger('article-channel', 'new-comment', {
+//     articleId,
+//     userId,
+//     commentText,
+//     message: `User ${userId} commented on article ${articleId}.`,
+//   });
+
+
+//   // Emit socket event to the article owner
+//   // io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
+// }
+
+// await article.save();
+//     res.status(200).json({ message: 'Comment added successfully.',article});
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+//   }
+// };
 
 
 // Delete a comment
@@ -2713,7 +2771,11 @@ export const getallArticle = async (req, res) => {
     const article = await Article.find()
       .skip(skip)
       .limit(Number(limit))
-      .populate('author', 'firstName lastName profilePicture')  // Dynamically fetch author details
+      .populate('author', 'firstName lastName profilePicture') 
+      .populate({
+        path: 'comments.userId',  // Populate comment authors
+        select: 'firstName lastName profilePicture',  // Select necessary fields from Profile
+      }) // Dynamically fetch author details
       .exec();
 
 
