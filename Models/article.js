@@ -50,8 +50,8 @@ const CommentSchema = new Schema({
         ref: "Profile",
     },
     text: String,
-    firstName: String,
-    lastName: String,
+    // firstName: String,
+    // lastName: String,
     likes: { type: Number, default: 0 },
     // likedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     likedBy: [
