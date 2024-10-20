@@ -45,7 +45,7 @@ const ReplySchema = new Schema({
 const Reply = mongoose.model('Reply', ReplySchema);
 
 const CommentSchema = new Schema({
-    userId: {
+  Commentauhtor: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Profile",
     },
