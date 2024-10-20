@@ -16,7 +16,7 @@ const CommentSchema = new mongoose.Schema({
       userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     },
   ],
-  file: filesSchema,
+  // file: filesSchema,
   // replies: [ReplySchema],  // Assuming you have a Reply schema
   added: { type: Date, default: Date.now },
 });
