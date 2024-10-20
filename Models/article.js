@@ -17,7 +17,7 @@ const CommentSchema = new mongoose.Schema({
     },
   ],
   file: filesSchema,
-  replies: [ReplySchema],  // Assuming you have a Reply schema
+  // replies: [ReplySchema],  // Assuming you have a Reply schema
   added: { type: Date, default: Date.now },
 });
 

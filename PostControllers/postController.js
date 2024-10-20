@@ -1,4 +1,4 @@
-import { Article ,ReplyModel} from "../Models/article.js";
+import { Article } from "../Models/article.js";
 import { Job } from "../Models/job.js";
 import { Issue } from "../Models/issue.js";
 import { Learn } from "../Models/learn.js";
