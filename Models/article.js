@@ -45,13 +45,13 @@ const ReplySchema = new Schema({
 const Reply = mongoose.model('Reply', ReplySchema);
 
 const CommentSchema = new Schema({
-  author: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Profile",
     },
     text: String,
-    // firstName: String,
-    // lastName: String,
+    firstName: String,
+    lastName: String,
     likes: { type: Number, default: 0 },
     // likedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     likedBy: [
