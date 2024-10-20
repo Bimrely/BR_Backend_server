@@ -754,7 +754,7 @@ export const commentArticle = async (req, res) => {
       { new: true }                       // Return the updated article
     )
     .populate({
-      path: 'comments.Commentauhtor',  // Populate the comment author (Profile details)
+      path: 'comments.userId',  // Populate the comment author (Profile details)
       select: 'firstName lastName profilePicture',  // Only select necessary fields
     });
 
@@ -2773,7 +2773,7 @@ export const getallArticle = async (req, res) => {
       .limit(Number(limit))
       .populate('author', 'firstName lastName profilePicture') 
       .populate({
-        path: 'comments.Commentauhtor',  // Populate comment authors
+        path: 'comments.userId',  // Populate comment authors
         select: 'firstName lastName profilePicture',  // Select necessary fields from Profile
       }) // Dynamically fetch author details
       .exec();
