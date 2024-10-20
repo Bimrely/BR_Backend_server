@@ -740,7 +740,7 @@ export const commentArticle = async (req, res) => {
 
     // Create a new comment and set the userId to the Profile ID
     const comment = new Comment({
-      userId: profile._id,  // Set userId to the Profile reference
+      commentAuthor: profile._id,  // Set userId to the Profile reference
       article: articleId,
       text,
     });
