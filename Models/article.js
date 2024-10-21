@@ -49,6 +49,11 @@ const CommentSchema = new Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Profile",
     },
+    userId:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref:'User',
+      
+  },
     text: String,
     firstName: String,
     lastName: String,
