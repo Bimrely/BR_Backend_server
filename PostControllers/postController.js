@@ -742,7 +742,7 @@ export const commentArticle = async (req, res) => {
     const comment = new Comment({
       commentAuthor: profile._id,  // Set userId to the Profile reference
       article: articleId,
-      userId,
+      userId:userId,
       text,
     });
 
