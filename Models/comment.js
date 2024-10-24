@@ -31,7 +31,15 @@ const commentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref:'User',
     
-}
+},
+mentions: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Profile",  // References the profiles of mentioned users
+  },
+],
+
+
 
 });
 

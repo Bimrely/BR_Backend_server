@@ -723,14 +723,11 @@ export const deleteReply = async (req, res) => {
 
 
 
-
-
-// Comment on an article
 export const commentArticle = async (req, res) => {
   try {
     const { articleId } = req.params;
     const { text } = req.body;
-    const userId = req.userId;  // Get the logged-in user's ID
+    const userId = req.userId; // Get the logged-in user's ID
 
     // Find the user's profile based on userId
     const profile = await Profile.findOne({ userId });
@@ -738,12 +735,27 @@ export const commentArticle = async (req, res) => {
       return res.status(404).json({ message: 'Profile not found' });
     }
 
-    // Create a new comment and set the userId to the Profile ID
+    // Detect mentions in the comment text (e.g., @username)
+    const mentionPattern = /@(\w+)/g;
+    const mentions = [];
+    let match;
+
+    // Find mentioned profiles and store their profile IDs in 'mentions' array
+    while ((match = mentionPattern.exec(text)) !== null) {
+      const username = match[1]; // Extract the username
+      const mentionedProfile = await Profile.findOne({ username }); // Assuming 'username' field in profile
+      if (mentionedProfile) {
+        mentions.push(mentionedProfile._id); // Push the mentioned profile's ID to the array
+      }
+    }
+
+    // Create a new comment and set the userId to the Profile reference
     const comment = new Comment({
-      commentAuthor: profile._id,  // Set userId to the Profile reference
+      commentAuthor: profile._id,  // Set author to the Profile reference
       article: articleId,
-      userId:userId,
-      text,
+      userId: userId,
+      text: text,
+      mentions: mentions,  // Store the mentioned profiles
     });
 
     await comment.save();
@@ -751,30 +763,51 @@ export const commentArticle = async (req, res) => {
     // Add the comment to the article's comments array
     const article = await Article.findByIdAndUpdate(
       articleId,
-      { $push: { comments: comment } },   // Push the comment into the comments array
-      { new: true }                       // Return the updated article
+      { $push: { comments: comment } }, // Push the comment into the comments array
+      { new: true } // Return the updated article
     )
     .populate({
-      path: 'comments.commentAuthor',  // Populate the comment author (Profile details)
-      select: 'firstName lastName profilePicture',  // Only select necessary fields
+      path: 'comments.commentAuthor',
+      select: 'firstName lastName profilePicture',
+    })
+    .populate({
+      path: 'comments.mentions',
+      select: 'firstName lastName profilePicture',
     });
 
-    // Create a notification if the comment is not by the article owner
+    // Send notification to mentioned users
+    for (const mentionedUserId of mentions) {
+      const mentionNotification = new Notification({
+        user: mentionedUserId,  // The mentioned user
+        type: 'mention',
+        article: article._id,
+        message: `${profile.firstName} mentioned you in a comment.`,
+      });
+      await mentionNotification.save();
+
+      // Pusher to notify the mentioned user
+      pusher.trigger('mention-channel', 'new-mention', {
+        mentionedUserId,
+        articleId,
+        message: `You were mentioned in a comment by ${profile.firstName}.`,
+      });
+    }
+
+    // Send notification to the article owner (if they're not the commenter)
     if (article.userId.toString() !== userId) {
-      const notification = new Notification({
-        user: article.userId,  // Article owner
+      const articleOwnerNotification = new Notification({
+        user: article.userId,  // The article owner
         type: 'comment',
         article: article._id,
-        message: `${profile.firstName} ${profile.lastName} commented on your article.`,
+        message: `${profile.firstName} commented on your article.`,
       });
+      await articleOwnerNotification.save();
 
-      await notification.save();
-
-      // Trigger Pusher notification
+      // Notify the article owner
       pusher.trigger('article-channel', 'new-comment', {
         articleId,
         userId,
-        message: `User ${profile.firstName} ${profile.lastName} commented on article ${articleId}.`,
+        message: `User ${profile.firstName} commented on your article.`,
       });
     }
 
@@ -784,6 +817,70 @@ export const commentArticle = async (req, res) => {
     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
   }
 };
+
+
+
+
+
+// Comment on an article
+// export const commentArticle = async (req, res) => {
+//   try {
+//     const { articleId } = req.params;
+//     const { text } = req.body;
+//     const userId = req.userId;  // Get the logged-in user's ID
+
+//     // Find the user's profile based on userId
+//     const profile = await Profile.findOne({ userId });
+//     if (!profile) {
+//       return res.status(404).json({ message: 'Profile not found' });
+//     }
+
+//     // Create a new comment and set the userId to the Profile ID
+//     const comment = new Comment({
+//       commentAuthor: profile._id,  // Set userId to the Profile reference
+//       article: articleId,
+//       userId:userId,
+//       text,
+//     });
+
+//     await comment.save();
+
+//     // Add the comment to the article's comments array
+//     const article = await Article.findByIdAndUpdate(
+//       articleId,
+//       { $push: { comments: comment } },   // Push the comment into the comments array
+//       { new: true }                       // Return the updated article
+//     )
+//     .populate({
+//       path: 'comments.commentAuthor',  // Populate the comment author (Profile details)
+//       select: 'firstName lastName profilePicture',  // Only select necessary fields
+//     });
+
+//     // Create a notification if the comment is not by the article owner
+//     if (article.userId.toString() !== userId) {
+//       const notification = new Notification({
+//         user: article.userId,  // Article owner
+//         type: 'comment',
+//         article: article._id,
+//         message: `${profile.firstName} ${profile.lastName} commented on your article.`,
+//       });
+
+//       await notification.save();
+
+//       // Trigger Pusher notification
+//       pusher.trigger('article-channel', 'new-comment', {
+//         articleId,
+//         userId,
+//         message: `User ${profile.firstName} ${profile.lastName} commented on article ${articleId}.`,
+//       });
+//     }
+
+//     res.status(200).json({ message: 'Comment added successfully.', article });
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+//   }
+// };
 
 
 
