@@ -742,8 +742,8 @@ export const commentArticle = async (req, res) => {
 
     // Find mentioned profiles and store their profile IDs in 'mentions' array
     while ((match = mentionPattern.exec(text)) !== null) {
-      const firstName = match[1]; // Extract the username
-      const mentionedProfile = await Profile.findOne({ firstName }); // Assuming 'username' field in profile
+      const username = match[1]; // Extract the username
+      const mentionedProfile = await Profile.findOne({ username }); // Assuming 'username' field in profile
       if (mentionedProfile) {
         mentions.push(mentionedProfile._id); // Push the mentioned profile's ID to the array
       }
@@ -776,22 +776,18 @@ export const commentArticle = async (req, res) => {
     });
 
     // Send notification to mentioned users
-  
-    
-
-      if (article.userId) {
-        const mentionNotification = new Notification({
-          user: article.userId,  // The article owner
-          type: 'mention',
-          article: article._id,
-          message: `${profile.firstName} commented on your article.`,
-        });
-        await mentionNotification.save();
-
+    for (const mentionedUserId of mentions) {
+      const mentionNotification = new Notification({
+        user: mentionedUserId,  // The mentioned user
+        type: 'mention',
+        article: article._id,
+        message: `${profile.firstName} mentioned you in a comment.`,
+      });
+      await mentionNotification.save();
 
       // Pusher to notify the mentioned user
       pusher.trigger('article-channel', 'new-mention', {
-        userId,
+        mentionedUserId,
         articleId,
         message: `You were mentioned in a comment by ${profile.firstName}.`,
       });
