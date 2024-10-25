@@ -729,7 +729,7 @@ export const commentArticle = async (req, res) => {
     const { text } = req.body;
     const userId = req.userId; // Get the logged-in user's ID
 
-    // Find the user's profile based on userId
+    // Fetch the profile of the commenter
     const profile = await Profile.findOne({ userId });
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
@@ -737,26 +737,30 @@ export const commentArticle = async (req, res) => {
 
     // Detect mentions in the comment text (e.g., @username)
     const mentionPattern = /@(\w+)/g;
-    const mentions = [];
+    const mentionedNames = [];
     let match;
 
-    // Find mentioned profiles and store their profile IDs in 'mentions' array
+    // Extract potential mention usernames from the text
     while ((match = mentionPattern.exec(text)) !== null) {
-      const firstName = match[1];
-      const lastName = match[1]; // Extract the username
-      const mentionedProfile = await Profile.findOne({ firstName , lastName }); // Assuming 'username' field in profile
-      if (mentionedProfile) {
-        mentions.push(mentionedProfile._id); // Push the mentioned profile's ID to the array
-      }
+      const username = match[1];
+      mentionedNames.push(username); // Collect all mention names
     }
 
-    // Create a new comment and set the userId to the Profile reference
+    // Fetch profiles of all mentioned users in a single query
+    const mentionedProfiles = await Profile.find({ 
+      firstName: { $in: mentionedNames }
+    });
+
+    // Get the IDs of mentioned profiles to save in the comment's `mentions` field
+    const mentionedIds = mentionedProfiles.map(profile => profile._id);
+
+    // Create and save the comment with the author and mention references
     const comment = new Comment({
-      commentAuthor: profile._id,  // Set author to the Profile reference
+      commentAuthor: profile._id,
       article: articleId,
       userId: userId,
       text: text,
-      mentions: mentions,  // Store the mentioned profiles
+      mentions: mentionedIds,  // Store the mentioned profiles
     });
 
     await comment.save();
@@ -776,25 +780,25 @@ export const commentArticle = async (req, res) => {
       select: 'firstName lastName profilePicture',
     });
 
-    // Send notification to mentioned users
-    for (const mentionedUserId of mentions) {
+    // Send notifications to mentioned users
+    for (const mentionedProfile of mentionedProfiles) {
       const mentionNotification = new Notification({
-        user: mentionedUserId,  // The mentioned user
+        user: mentionedProfile.userId,  // The mentioned user's ID from Profile
         type: 'mention',
         article: article._id,
         message: `${profile.firstName} mentioned you in a comment.`,
       });
       await mentionNotification.save();
 
-      // Pusher to notify the mentioned user
+      // Use Pusher to notify the mentioned user
       pusher.trigger('article-channel', 'new-mention', {
-        mentionedUserId,
+        mentionedUserId: mentionedProfile.userId,
         articleId,
         message: `You were mentioned in a comment by ${profile.firstName}.`,
       });
     }
 
-    // Send notification to the article owner (if they're not the commenter)
+    // Notify the article owner (if they're not the commenter)
     if (article.userId.toString() !== userId) {
       const articleOwnerNotification = new Notification({
         user: article.userId,  // The article owner
