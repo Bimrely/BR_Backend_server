@@ -9,7 +9,7 @@ const notificationSchema = new Schema({
   type: {
     type: String,
     required: true,
-    enum: ['like', 'comment', 'reply', 'share'] // Add all possible notification types here
+    enum: ['like', 'comment', 'reply', 'share' ,'mention'] // Add all possible notification types here
   },
   article: { type: Schema.Types.ObjectId, ref: 'Article', },
   job:{ type: Schema.Types.ObjectId, ref: 'Job', },
