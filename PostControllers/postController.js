@@ -742,8 +742,9 @@ export const commentArticle = async (req, res) => {
 
     // Find mentioned profiles and store their profile IDs in 'mentions' array
     while ((match = mentionPattern.exec(text)) !== null) {
-      const firstName = match[1]; // Extract the username
-      const mentionedProfile = await Profile.findOne({ firstName }); // Assuming 'username' field in profile
+      const firstName = match[1];
+      const lastName = match[1]; // Extract the username
+      const mentionedProfile = await Profile.findOne({ firstName , lastName }); // Assuming 'username' field in profile
       if (mentionedProfile) {
         mentions.push(mentionedProfile._id); // Push the mentioned profile's ID to the array
       }
