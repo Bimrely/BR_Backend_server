@@ -68,6 +68,15 @@ const CommentSchema = new Schema({
       ],
     file:filesSchema,
     replies: [ReplySchema],
+
+ mentions: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Profile",  // References the profiles of mentioned users
+    },
+  ],
+  
+
     added: { type: Date, default: Date.now }
 });
 

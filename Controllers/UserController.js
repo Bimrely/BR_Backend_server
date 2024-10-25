@@ -196,6 +196,19 @@ export const getProfile = async (req, res) => {
 
 
 
+// Fetch all profiles - API Endpoint
+export const getAllProfiles = async (req, res) => {
+  try {
+    // Fetch only necessary fields for mention functionality
+    const profiles = await Profile.find({}, 'firstName lastName profilePicture');
+    res.status(200).json({ profiles });
+  } catch (error) {
+    console.error('Error retrieving profiles:', error);
+    res.status(500).json({ message: 'Error retrieving profiles', error });
+  }
+};
+
+
 
   // Get user profile By Id//
 //   export const getProfile = async (req, res) => {

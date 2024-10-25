@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Signup, resetPassword, setPassword } from '../Controllers/UserController.js';
 import { SignIn } from '../Controllers/UserController.js';
-import {createUserProfile,editUserProfile,logOut,getProfile,}from '../Controllers/UserController.js';
+import {createUserProfile,editUserProfile,logOut,getProfile, getAllProfiles}from '../Controllers/UserController.js';
 import {auth} from '../middleware/auth.js'
 
 // import { googleauth } from '../middleware/googleAuth.js';
@@ -14,6 +14,8 @@ router.post('/register-user',Signup);
 router.post('/login-user',SignIn);
 
 
+// routes/profile.js
+router.get('/all-profiles', auth, getAllProfiles);
 
 router.get('/profile',auth,getProfile)
 
