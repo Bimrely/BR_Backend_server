@@ -776,18 +776,22 @@ export const commentArticle = async (req, res) => {
     });
 
     // Send notification to mentioned users
-    for (const mentionedUserId of mentions) {
-      const mentionNotification = new Notification({
-        user: mentionedUserId,  // The mentioned user
-        type: 'mention',
-        article: article._id,
-        message: `${profile.firstName} mentioned you in a comment.`,
-      });
-      await mentionNotification.save();
+  
+    
+
+      if (article.userId) {
+        const mentionNotification = new Notification({
+          user: article.userId,  // The article owner
+          type: 'mention',
+          article: article._id,
+          message: `${profile.firstName} commented on your article.`,
+        });
+        await mentionNotification.save();
+
 
       // Pusher to notify the mentioned user
       pusher.trigger('mention-channel', 'new-mention', {
-        mentionedUserId,
+        userId,
         articleId,
         message: `You were mentioned in a comment by ${profile.firstName}.`,
       });
