@@ -722,38 +722,48 @@ export const deleteReply = async (req, res) => {
 };
 
 
-
 export const commentArticle = async (req, res) => {
   try {
     const { articleId } = req.params;
-    const { text, mentionedUsers } = req.body;  // Assume mentionedUsers array is passed from the frontend
+    const { text, mentionedUsers } = req.body; // Get text and mentioned users array from request
     const userId = req.userId;
 
-    // Get the commenter's profile
-    const profile = await Profile.findOne({ userId });
-    if (!profile) return res.status(404).json({ message: 'Profile not found' });
+    console.log("Received comment data:", { articleId, text, userId, mentionedUsers });
 
-    // Create a new comment
+    // Fetch the profile of the commenter
+    const profile = await Profile.findOne({ userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+    console.log("Found profile:", profile);
+
+    // Create a new comment with mentions array
     const comment = new Comment({
       commentAuthor: profile._id,
       article: articleId,
       userId: userId,
       text: text,
-      mentions: mentionedUsers.map(user => user.userId)  // Array of profile IDs for mentioned users
+      mentions: mentionedUsers.map(user => user.userId)  // Add only the IDs
     });
 
     await comment.save();
+    console.log("Comment saved:", comment);
 
-    // Add the comment to the article's comments array
+    // Update the article to include the comment
     const article = await Article.findByIdAndUpdate(
       articleId,
       { $push: { comments: comment } },
       { new: true }
     )
-    .populate({ path: 'comments.commentAuthor', select: 'firstName lastName profilePicture' })
-    .populate({ path: 'comments.mentions', select: 'firstName lastName profilePicture' });
+      .populate({ path: 'comments.commentAuthor', select: 'firstName lastName profilePicture' })
+      .populate({ path: 'comments.mentions', select: 'firstName lastName profilePicture' });
 
-    // Send notifications to mentioned users
+    if (!article) {
+      return res.status(404).json({ message: 'Article not found' });
+    }
+    console.log("Updated article with new comment:", article);
+
+    // Notify mentioned users
     for (const mentionedUser of mentionedUsers) {
       const mentionNotification = new Notification({
         user: mentionedUser.userId,
@@ -762,7 +772,9 @@ export const commentArticle = async (req, res) => {
         message: `${profile.firstName} mentioned you in a comment.`
       });
       await mentionNotification.save();
+      console.log("Mention notification saved:", mentionNotification);
 
+      // Real-time notification for the mentioned user
       pusher.trigger('article-channel', 'new-mention', {
         mentionedUserId: mentionedUser.userId,
         articleId,
@@ -770,7 +782,7 @@ export const commentArticle = async (req, res) => {
       });
     }
 
-    // Send a notification to the article owner if they are not the commenter
+    // Notify article owner if not the commenter
     if (article.userId.toString() !== userId) {
       const articleOwnerNotification = new Notification({
         user: article.userId,
@@ -779,7 +791,9 @@ export const commentArticle = async (req, res) => {
         message: `${profile.firstName} commented on your article.`
       });
       await articleOwnerNotification.save();
+      console.log("Comment notification saved for article owner:", articleOwnerNotification);
 
+      // Real-time notification for article owner
       pusher.trigger('article-channel', 'new-comment', {
         articleId,
         userId,
@@ -789,7 +803,7 @@ export const commentArticle = async (req, res) => {
 
     res.status(200).json({ message: 'Comment added successfully.', article });
   } catch (error) {
-    console.error('Error commenting on article:', error);
+    console.error('Error in commentArticle:', error);
     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
   }
 };
