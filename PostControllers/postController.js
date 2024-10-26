@@ -743,7 +743,7 @@ export const commentArticle = async (req, res) => {
       article: articleId,
       userId: userId,
       text: text,
-      mentions: mentionedUsers.map(user => user.id)  // Add only the IDs
+      mentions: mentionedUsers.map(user => user.userId)  // Add only the IDs
     });
 
     await comment.save();
@@ -766,7 +766,7 @@ export const commentArticle = async (req, res) => {
     // Notify mentioned users
     for (const mentionedUser of mentionedUsers) {
       const mentionNotification = new Notification({
-        user: mentionedUser.id,
+        user: mentionedUser.userId,
         type: 'mention',
         article: article._id,
         message: `${profile.firstName} mentioned you in a comment.`
@@ -776,7 +776,7 @@ export const commentArticle = async (req, res) => {
 
       // Real-time notification for the mentioned user
       pusher.trigger('article-channel', 'new-mention', {
-        mentionedUserId: mentionedUser.id,
+        mentionedUserId: mentionedUser.userId,
         articleId,
         message: `You were mentioned in a comment by ${profile.firstName}.`
       });
