@@ -200,7 +200,7 @@ export const getProfile = async (req, res) => {
 export const getAllProfiles = async (req, res) => {
   try {
     // Fetch only necessary fields for mention functionality
-    const profiles = await Profile.find({}, 'firstName lastName profilePicture');
+    const profiles = await Profile.find({}, 'firstName lastName profilePicture userId');
     res.status(200).json({ profiles });
   } catch (error) {
     console.error('Error retrieving profiles:', error);
