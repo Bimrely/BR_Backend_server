@@ -756,7 +756,7 @@ export const commentArticle = async (req, res) => {
       { new: true }
     )
       .populate({ path: 'comments.commentAuthor', select: 'firstName lastName profilePicture' })
-      .populate({ path: 'comments.mentions', select: 'firstName lastName profilePicture' });
+      .populate({ path: 'comments.mentions', select: 'firstName lastName profilePicture userId' });
 
     if (!article) {
       return res.status(404).json({ message: 'Article not found' });
