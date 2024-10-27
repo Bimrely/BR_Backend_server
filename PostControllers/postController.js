@@ -725,90 +725,102 @@ export const deleteReply = async (req, res) => {
 export const commentArticle = async (req, res) => {
   try {
     const { articleId } = req.params;
-    const { text, mentionedUsers } = req.body; // Get text and mentioned users array from request
-    const userId = req.userId;
-
-    console.log("Received comment data:", { articleId, text, userId, mentionedUsers });
+    const { text } = req.body;
+    const userId = req.userId; // Get the logged-in user's ID
 
     // Fetch the profile of the commenter
     const profile = await Profile.findOne({ userId });
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
-    console.log("Found profile:", profile);
 
-    // Create a new comment with mentions array
+    // Detect mentions in the comment text (e.g., @username)
+    const mentionPattern = /@(\w+)/g;
+    const mentionedNames = [];
+    let match;
+
+    // Extract potential mention usernames from the text
+    while ((match = mentionPattern.exec(text)) !== null) {
+      const username = match[1];
+      mentionedNames.push(username); // Collect all mention names
+    }
+
+    // Fetch profiles of all mentioned users in a single query
+    const mentionedProfiles = await Profile.find({ 
+      firstName: { $in: mentionedNames }
+    });
+
+    // Get the IDs of mentioned profiles to save in the comment's `mentions` field
+    const mentionedIds = mentionedProfiles.map(profile => profile._id);
+
+    // Create and save the comment with the author and mention references
     const comment = new Comment({
       commentAuthor: profile._id,
       article: articleId,
       userId: userId,
       text: text,
-      mentions: mentionedUsers.map(user => user.userId)  // Add only the IDs
+      mentions: mentionedIds,  // Store the mentioned profiles
     });
 
     await comment.save();
-    console.log("Comment saved:", comment);
 
-    // Update the article to include the comment
+    // Add the comment to the article's comments array
     const article = await Article.findByIdAndUpdate(
       articleId,
-      { $push: { comments: comment } },
-      { new: true }
+      { $push: { comments: comment } }, // Push the comment into the comments array
+      { new: true } // Return the updated article
     )
-      .populate({ path: 'comments.commentAuthor', select: 'firstName lastName profilePicture' })
-      .populate({ path: 'comments.mentions', select: 'firstName lastName profilePicture userId' });
+    .populate({
+      path: 'comments.commentAuthor',
+      select: 'firstName lastName profilePicture',
+    })
+    .populate({
+      path: 'comments.mentions',
+      select: 'firstName lastName profilePicture',
+    });
 
-    if (!article) {
-      return res.status(404).json({ message: 'Article not found' });
-    }
-    console.log("Updated article with new comment:", article);
-
-    // Notify mentioned users
-    for (const mentionedUser of mentionedUsers) {
+    // Send notifications to mentioned users
+    for (const mentionedProfile of mentionedProfiles) {
       const mentionNotification = new Notification({
-        user: mentionedUser.userId,
+        user: mentionedProfile.userId,  // The mentioned user's ID from Profile
         type: 'mention',
         article: article._id,
-        message: `${profile.firstName} mentioned you in a comment.`
+        message: `${profile.firstName} mentioned you in a comment.`,
       });
       await mentionNotification.save();
-      console.log("Mention notification saved:", mentionNotification);
 
-      // Real-time notification for the mentioned user
+      // Use Pusher to notify the mentioned user
       pusher.trigger('article-channel', 'new-mention', {
-        mentionedUserId: mentionedUser.userId,
+        mentionedUserId: mentionedProfile.userId,
         articleId,
-        message: `You were mentioned in a comment by ${profile.firstName}.`
+        message: `You were mentioned in a comment by ${profile.firstName}.`,
       });
     }
 
-    // Notify article owner if not the commenter
+    // Notify the article owner (if they're not the commenter)
     if (article.userId.toString() !== userId) {
       const articleOwnerNotification = new Notification({
-        user: article.userId,
+        user: article.userId,  // The article owner
         type: 'comment',
         article: article._id,
-        message: `${profile.firstName} commented on your article.`
+        message: `${profile.firstName} commented on your article.`,
       });
       await articleOwnerNotification.save();
-      console.log("Comment notification saved for article owner:", articleOwnerNotification);
 
-      // Real-time notification for article owner
+      // Notify the article owner
       pusher.trigger('article-channel', 'new-comment', {
         articleId,
         userId,
-        message: `User ${profile.firstName} commented on your article.`
+        message: `User ${profile.firstName} commented on your article.`,
       });
     }
 
     res.status(200).json({ message: 'Comment added successfully.', article });
   } catch (error) {
-    console.error('Error in commentArticle:', error);
+    console.error('Error commenting on article:', error);
     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
   }
 };
-
-
 
 
 
