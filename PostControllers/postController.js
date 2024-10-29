@@ -785,13 +785,7 @@ export const commentArticle = async (req, res) => {
         article: article._id,
         message: `${profile.firstName} mentioned you in a comment.`,
       });
-
-      if (mentionNotification.type === 'mention') {
-    
       
-
-
-
       await mentionNotification.save();
 
       // Use Pusher to notify the mentioned user
@@ -801,7 +795,7 @@ export const commentArticle = async (req, res) => {
         message: `You were mentioned in a comment by ${profile.firstName}.`,
       });
     }
-  }
+
     // Notify the article owner (if they're not the commenter)
     if (article.userId.toString() !== userId) {
       const articleOwnerNotification = new Notification({
