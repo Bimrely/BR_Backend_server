@@ -777,8 +777,15 @@ export const commentArticle = async (req, res) => {
         select: 'firstName lastName profilePicture',
       });
 
+    // Flag to track if the article owner was mentioned
+    let articleOwnerMentioned = false;
+
     // Send notifications to mentioned users
     for (const mentionedProfile of mentionedProfiles) {
+      if (mentionedProfile.userId.toString() === article.userId.toString()) {
+        articleOwnerMentioned = true; // Mark that the article owner was mentioned
+      }
+
       const mentionNotification = new Notification({
         user: mentionedProfile.userId,  // The mentioned user's ID from Profile
         type: 'mention',
@@ -796,18 +803,14 @@ export const commentArticle = async (req, res) => {
       });
     }
 
-    // Notify the article owner (if they're not the commenter)
-    if (article.userId.toString() !== userId) {
+    // If the article owner wasn't mentioned, send a separate comment notification
+    if (!articleOwnerMentioned && article.userId.toString() !== userId) {
       const articleOwnerNotification = new Notification({
         user: article.userId,  // The article owner
         type: 'comment',
         article: article._id,
         message: `${profile.firstName} commented on your article.`,
       });
- 
-  
-
-
       await articleOwnerNotification.save();
 
       // Notify the article owner
@@ -818,14 +821,118 @@ export const commentArticle = async (req, res) => {
       });
     }
 
-    
-
     res.status(200).json({ message: 'Comment added successfully.', article });
   } catch (error) {
     console.error('Error commenting on article:', error);
     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
   }
 };
+
+// export const commentArticle = async (req, res) => {
+//   try {
+//     const { articleId } = req.params;
+//     const { text } = req.body;
+//     const userId = req.userId; // Get the logged-in user's ID
+
+//     // Fetch the profile of the commenter
+//     const profile = await Profile.findOne({ userId });
+//     if (!profile) {
+//       return res.status(404).json({ message: 'Profile not found' });
+//     }
+
+//     // Detect mentions in the comment text (pattern `@[displayName](userId)`)
+//     const mentionPattern = /@\[(.*?)\]\((.*?)\)/g;
+//     const mentionedIds = [];
+//     let match;
+
+//     // Extract and log each mention ID from text
+//     while ((match = mentionPattern.exec(text)) !== null) {
+//       const mentionedUserId = match[2]; // Extract userId directly
+//       mentionedIds.push(mentionedUserId);
+//     }
+
+//     // Fetch profiles for all mentioned IDs to validate and store
+//     const mentionedProfiles = await Profile.find({ _id: { $in: mentionedIds } });
+    
+//     if (!mentionedProfiles.length) {
+//       console.log("No valid profiles found for mentions");
+//     }
+
+//     // Create and save the comment with the author and mention references
+//     const comment = new Comment({
+//       commentAuthor: profile._id,
+//       article: articleId,
+//       userId: userId,
+//       text: text,
+//       mentions: mentionedIds,  // Store the mentioned profiles directly
+//     });
+
+//     await comment.save();
+
+//     // Add the comment to the article's comments array
+//     const article = await Article.findByIdAndUpdate(
+//       articleId,
+//       { $push: { comments: comment } }, // Push the comment into the comments array
+//       { new: true } // Return the updated article
+//     )
+//       .populate({
+//         path: 'comments.commentAuthor',
+//         select: 'firstName lastName profilePicture',
+//       })
+//       .populate({
+//         path: 'comments.mentions',
+//         select: 'firstName lastName profilePicture',
+//       });
+
+//     // Send notifications to mentioned users
+//     for (const mentionedProfile of mentionedProfiles) {
+//       const mentionNotification = new Notification({
+//         user: mentionedProfile.userId,  // The mentioned user's ID from Profile
+//         type: 'mention',
+//         article: article._id,
+//         message: `${profile.firstName} mentioned you in a comment.`,
+//       });
+      
+//       await mentionNotification.save();
+
+//       // Use Pusher to notify the mentioned user
+//       pusher.trigger('article-channel', 'new-mention', {
+//         mentionedUserId: mentionedProfile.userId,
+//         articleId,
+//         message: `You were mentioned in a comment by ${profile.firstName}.`,
+//       });
+//     }
+
+//     // Notify the article owner (if they're not the commenter)
+//     if (article.userId.toString() !== userId) {
+//       const articleOwnerNotification = new Notification({
+//         user: article.userId,  // The article owner
+//         type: 'comment',
+//         article: article._id,
+//         message: `${profile.firstName} commented on your article.`,
+//       });
+ 
+  
+
+
+//       await articleOwnerNotification.save();
+
+//       // Notify the article owner
+//       pusher.trigger('article-channel', 'new-comment', {
+//         articleId,
+//         userId,
+//         message: `User ${profile.firstName} commented on your article.`,
+//       });
+//     }
+
+    
+
+//     res.status(200).json({ message: 'Comment added successfully.', article });
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+//   }
+// };
 
 // export const commentArticle = async (req, res) => {
 //   try {
