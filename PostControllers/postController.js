@@ -778,12 +778,11 @@ export const commentArticle = async (req, res) => {
       });
 
     // Send notifications to mentioned users
-    for (const mentionedProfile of mentionedProfiles) {
-
-      if (article.userId.toString() !== userId) {
-    
+    if (article.userId.toString() !== userId) {
     
   
+
+    for (const mentionedProfile of mentionedProfiles) {
       const mentionNotification = new Notification({
         user: mentionedProfile.userId,  // The mentioned user's ID from Profile
         type: 'mention',
