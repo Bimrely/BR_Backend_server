@@ -735,7 +735,7 @@ export const commentArticle = async (req, res) => {
     }
 
     // Detect mentions in the comment text (e.g., @username)
-    const mentionPattern = /@(\w+)/g;
+    const mentionPattern = /@\[(.*?)\]\((.*?)\)/g;
     const mentionedNames = [];
     let match;
 
