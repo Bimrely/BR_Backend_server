@@ -778,10 +778,6 @@ export const commentArticle = async (req, res) => {
       });
 
     // Send notifications to mentioned users
-    if (article.userId.toString() !== userId) {
-    
-  
-
     for (const mentionedProfile of mentionedProfiles) {
       const mentionNotification = new Notification({
         user: mentionedProfile.userId,  // The mentioned user's ID from Profile
@@ -789,6 +785,13 @@ export const commentArticle = async (req, res) => {
         article: article._id,
         message: `${profile.firstName} mentioned you in a comment.`,
       });
+
+      if (mentionNotification.type === 'mention') {
+    
+      
+
+
+
       await mentionNotification.save();
 
       // Use Pusher to notify the mentioned user
@@ -807,6 +810,10 @@ export const commentArticle = async (req, res) => {
         article: article._id,
         message: `${profile.firstName} commented on your article.`,
       });
+ 
+  
+
+
       await articleOwnerNotification.save();
 
       // Notify the article owner
@@ -817,7 +824,8 @@ export const commentArticle = async (req, res) => {
       });
     }
 
-  
+    
+
     res.status(200).json({ message: 'Comment added successfully.', article });
   } catch (error) {
     console.error('Error commenting on article:', error);
