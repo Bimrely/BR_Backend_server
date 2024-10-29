@@ -780,7 +780,7 @@ export const commentArticle = async (req, res) => {
     // Send notifications to mentioned users
     for (const mentionedProfile of mentionedProfiles) {
 
-      if (mentionedIds.toString() !== userId) {
+      if (article.userId.toString() !== userId) {
     
     
   
