@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Signup, resetPassword, setPassword } from '../Controllers/UserController.js';
 import { SignIn } from '../Controllers/UserController.js';
-import {createUserProfile,editUserProfile,logOut,getProfile, getAllProfiles}from '../Controllers/UserController.js';
+import {createUserProfile,editUserProfile,logOut,getProfile, getAllProfiles,getProfileByUserId}from '../Controllers/UserController.js';
 import {auth} from '../middleware/auth.js'
 
 // import { googleauth } from '../middleware/googleAuth.js';
@@ -18,6 +18,9 @@ router.post('/login-user',SignIn);
 router.get('/all-profiles', auth, getAllProfiles);
 
 router.get('/profile',auth,getProfile)
+// In your routes file
+router.get('/profile/:userId',auth, getProfileByUserId);
+
 
 // router.get('/profile/:userId',auth,getProfileById)
 router.post('/create-profile',auth,createUserProfile)

@@ -161,6 +161,40 @@ export const SignIn = async(req, res, next)=>{
 // };
 
 
+
+// Backend: getProfileByUserId
+export const getProfileByUserId = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const userProfile = await Profile.findOne({ userId })
+      .populate('sharedArticles', 'firstName lastName profilePicture')
+      .populate('sharedIssues', 'firstName lastName profilePicture')
+      .populate('sharedJobs', 'firstName lastName profilePicture')
+      .populate('sharedLearns', 'firstName lastName profilePicture');
+
+    if (!userProfile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    res.status(200).json({ userProfile });
+  } catch (error) {
+    console.error('Error retrieving user profile:', error);
+    res.status(500).json({ message: 'Error retrieving user profile', error });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
 export const getProfile = async (req, res) => {
   const userId = req.userId; // Assuming you're using authentication middleware and user ID is available in req.userId
 
