@@ -770,7 +770,7 @@ export const commentArticle = async (req, res) => {
     )
       .populate({
         path: 'comments.commentAuthor',
-        select: 'firstName lastName profilePicture',
+        select: 'firstName lastName profilePicture userId',
       })
       .populate({
         path: 'comments.mentions',
