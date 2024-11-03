@@ -3086,7 +3086,7 @@ export const getallArticle = async (req, res) => {
       .populate('author', 'firstName lastName profilePicture') 
       .populate({
         path: 'comments.commentAuthor',  // Populate comment authors
-        select: 'firstName lastName profilePicture',  // Select necessary fields from Profile
+        select: 'firstName lastName profilePicture userId',  // Select necessary fields from Profile
       }) // Dynamically fetch author details
       .exec();
 
