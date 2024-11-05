@@ -168,10 +168,22 @@ export const getProfileByUserId = async (req, res) => {
 
   try {
     const userProfile = await Profile.findOne({ userId })
-      .populate('sharedArticles', 'firstName lastName profilePicture')
-      .populate('sharedIssues', 'firstName lastName profilePicture')
-      .populate('sharedJobs', 'firstName lastName profilePicture')
-      .populate('sharedLearns', 'firstName lastName profilePicture');
+    .populate({
+      path: 'sharedArticles',
+      populate: { path: 'author', select: 'firstName lastName profilePicture' }
+    })
+    .populate({
+      path: 'sharedIssues',
+      populate: { path: 'author', select: 'firstName lastName profilePicture' }
+    })
+    .populate({
+      path: 'sharedJobs',
+      populate: { path: 'author', select: 'firstName lastName profilePicture' }
+    })
+    .populate({
+      path: 'sharedLearns',
+      populate: { path: 'author', select: 'firstName lastName profilePicture' }
+    });
 
     if (!userProfile) {
       return res.status(404).json({ message: 'Profile not found' });
