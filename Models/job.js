@@ -15,6 +15,10 @@ export const files = new Schema({
 
 
 const CommentSchema = new Schema({
+  commentAuthor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Profile",
+},
   userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -24,6 +28,13 @@ const CommentSchema = new Schema({
   lastName: String,
   likes: { type: Number, default: 0 },
   // likedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  
+ mentions: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Profile",  // References the profiles of mentioned users
+  },
+],
   likedBy: [
       {
       userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

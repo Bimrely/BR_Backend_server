@@ -399,95 +399,200 @@ if (comment.userId.toString() !== userId) {
 
 
 
-
-
-// Comment on an job
 export const commentJob = async (req, res) => {
   try {
     const { jobId } = req.params;
-    // const {userId} = req.params;
-    console.log(jobId);
-  
+    const { text } = req.body;
+    const userId = req.userId; // Get the logged-in user's ID
 
-    const { text} = req.body;
-    const userId = req.userId; 
+    // Fetch the profile of the commenter
+    const profile = await Profile.findOne({ userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
 
+    // Detect mentions in the comment text (pattern `@[displayName](userId)`)
+    const mentionPattern = /@\[(.*?)\]\((.*?)\)/g;
+    const mentionedIds = [];
+    let match;
 
-  const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
+    // Extract and log each mention ID from text
+    while ((match = mentionPattern.exec(text)) !== null) {
+      const mentionedUserId = match[2]; // Extract userId directly
+      mentionedIds.push(mentionedUserId);
+    }
 
+    // Fetch profiles for all mentioned IDs to validate and store
+    const mentionedProfiles = await Profile.find({ _id: { $in: mentionedIds } });
+    
+    if (!mentionedProfiles.length) {
+      console.log("No valid profiles found for mentions");
+    }
 
-    // Create a new comment
-    const comment = new Comment({ userId:req.userId, job: jobId, text });
-    await comment.save();
-  
-    const job = await Job.findByIdAndUpdate(jobId, {
-      
-        $push: { comments:{
-            _id: comment._id, 
-            text: comment.text,
-           userId:comment.userId,
-           userId: user._id,
-           firstName: user.firstName,
-           lastName: user.lastName,
-          //  file:comment.file
-        } 
-                 
-             },
-          
+    // Create and save the comment with the author and mention references
+    const comment = new Comment({
+      commentAuthor: profile._id,
+      job: jobId,
+      userId: userId,
+      text: text,
+      mentions: mentionedIds,  // Store the mentioned profiles directly
     });
 
- // Create a new notification
- if (job.userId.toString() !== userId) {
-  // Create notification only if the job is not liked by its owner
-  const notification = new Notification({
-    user: job.userId,
-    type: 'comment',
-    job: job._id,
-    message: `${user.firstName} ${user.lastName} comment on your job.`,
-  });
+    await comment.save();
 
-  await notification.save();
+    // Add the comment to the article's comments array
+    const job = await Job.findByIdAndUpdate(
+      jobId,
+      { $push: { comments: comment } }, // Push the comment into the comments array
+      { new: true } // Return the updated article
+    )
+      .populate({
+        path: 'comments.commentAuthor',
+        select: 'firstName lastName profilePicture userId',
+      })
+      .populate({
+        path: 'comments.mentions',
+        select: 'firstName lastName profilePicture',
+      });
 
-  
-  pusher.trigger('job-channel', 'new-comment-job', {
-    jobId,
-    userId,
-  
-  });
-  // Emit socket event to the job owner
-  // io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
-}
+    // Flag to track if the article owner was mentioned
+    let articleOwnerMentioned = false;
 
-await job.save();
-    res.status(200).json({ message: 'Comment added successfully.',job});
+    // Send notifications to mentioned users
+    for (const mentionedProfile of mentionedProfiles) {
+      if (mentionedProfile.userId.toString() === job.userId.toString()) {
+        articleOwnerMentioned = true; // Mark that the article owner was mentioned
+      }
+
+      const mentionNotification = new Notification({
+        user: mentionedProfile.userId,  // The mentioned user's ID from Profile
+        type: 'mention',
+        job: job._id,
+        message: `${profile.firstName} mentioned you in a comment.`,
+      });
+      
+      await mentionNotification.save();
+
+      // Use Pusher to notify the mentioned user
+      pusher.trigger('job-channel', 'new-mention', {
+        mentionedUserId: mentionedProfile.userId,
+        jobId,
+        message: `You were mentioned in a comment by ${profile.firstName}.`,
+      });
+    }
+
+    // If the article owner wasn't mentioned, send a separate comment notification
+    if (!articleOwnerMentioned && job.userId.toString() !== userId) {
+      const articleOwnerNotification = new Notification({
+        user: job.userId,  // The article owner
+        type: 'comment',
+        job: job._id,
+        message: `${profile.firstName} commented on your article.`,
+      });
+      await articleOwnerNotification.save();
+
+      // Notify the article owner
+      pusher.trigger('job-channel', 'new-comment', {
+        jobId,
+        userId,
+        message: `User ${profile.firstName} commented on your article.`,
+      });
+    }
+
+    res.status(200).json({ message: 'Comment added successfully.', job });
   } catch (error) {
     console.error('Error commenting on article:', error);
     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
   }
 };
 
+// Comment on an job
+// export const commentJob = async (req, res) => {
+//   try {
+//     const { jobId } = req.params;
+//     // const {userId} = req.params;
+//     console.log(jobId);
+  
 
-// Delete a comment
-export const deleteCommentJob = async (req, res) => {
-  try {
-    const { jobId, commentId } = req.params;
+//     const { text} = req.body;
+//     const userId = req.userId; 
 
-    // Find the job and remove the comment from the comments array
-    const job = await Job.findByIdAndUpdate(
-      jobId,
-      { $pull: { comments: { _id: commentId } } },
-      { new: true }
-    );
 
-    res.status(200).json({ message: 'Comment deleted successfully.', job });
-  } catch (error) {
-    console.error('Error deleting comment:', error);
-    res.status(500).json({ message: 'An error occurred while deleting the comment.' });
-  }
-};
+//   const user = await User.findById(userId);
+//   if (!user) {
+//     return res.status(404).json({ message: 'User not found' });
+//   }
+
+
+//     // Create a new comment
+//     const comment = new Comment({ userId:req.userId, job: jobId, text });
+//     await comment.save();
+  
+//     const job = await Job.findByIdAndUpdate(jobId, {
+      
+//         $push: { comments:{
+//             _id: comment._id, 
+//             text: comment.text,
+//            userId:comment.userId,
+//            userId: user._id,
+//            firstName: user.firstName,
+//            lastName: user.lastName,
+//           //  file:comment.file
+//         } 
+                 
+//              },
+          
+//     });
+
+//  // Create a new notification
+//  if (job.userId.toString() !== userId) {
+//   // Create notification only if the job is not liked by its owner
+//   const notification = new Notification({
+//     user: job.userId,
+//     type: 'comment',
+//     job: job._id,
+//     message: `${user.firstName} ${user.lastName} comment on your job.`,
+//   });
+
+//   await notification.save();
+
+  
+//   pusher.trigger('job-channel', 'new-comment-job', {
+//     jobId,
+//     userId,
+  
+//   });
+//   // Emit socket event to the job owner
+//   // io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
+// }
+
+// await job.save();
+//     res.status(200).json({ message: 'Comment added successfully.',job});
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+//   }
+// };
+
+
+// // Delete a comment
+// export const deleteCommentJob = async (req, res) => {
+//   try {
+//     const { jobId, commentId } = req.params;
+
+//     // Find the job and remove the comment from the comments array
+//     const job = await Job.findByIdAndUpdate(
+//       jobId,
+//       { $pull: { comments: { _id: commentId } } },
+//       { new: true }
+//     );
+
+//     res.status(200).json({ message: 'Comment deleted successfully.', job });
+//   } catch (error) {
+//     console.error('Error deleting comment:', error);
+//     res.status(500).json({ message: 'An error occurred while deleting the comment.' });
+//   }
+// };
 
 
 // Update a comment
@@ -3281,7 +3386,12 @@ export const getallJob = async (req, res) => {
       .skip(skip)
       .limit(Number(limit))
       .populate('author', 'firstName lastName profilePicture')  // Dynamically fetch author details
+      .populate({
+        path: 'comments.commentAuthor',  // Populate comment authors
+        select: 'firstName lastName profilePicture userId',  // Select necessary fields from Profile
+      }) // Dynamically fetch author details
       .exec();
+      
 
     const totalPages = Math.ceil(totalItems / limit);
 
