@@ -576,23 +576,23 @@ export const commentJob = async (req, res) => {
 
 
 // // Delete a comment
-// export const deleteCommentJob = async (req, res) => {
-//   try {
-//     const { jobId, commentId } = req.params;
+export const deleteCommentJob = async (req, res) => {
+  try {
+    const { jobId, commentId } = req.params;
 
-//     // Find the job and remove the comment from the comments array
-//     const job = await Job.findByIdAndUpdate(
-//       jobId,
-//       { $pull: { comments: { _id: commentId } } },
-//       { new: true }
-//     );
+    // Find the job and remove the comment from the comments array
+    const job = await Job.findByIdAndUpdate(
+      jobId,
+      { $pull: { comments: { _id: commentId } } },
+      { new: true }
+    );
 
-//     res.status(200).json({ message: 'Comment deleted successfully.', job });
-//   } catch (error) {
-//     console.error('Error deleting comment:', error);
-//     res.status(500).json({ message: 'An error occurred while deleting the comment.' });
-//   }
-// };
+    res.status(200).json({ message: 'Comment deleted successfully.', job });
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+    res.status(500).json({ message: 'An error occurred while deleting the comment.' });
+  }
+};
 
 
 // Update a comment
