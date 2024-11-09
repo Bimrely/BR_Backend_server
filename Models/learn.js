@@ -14,6 +14,10 @@ export const files = new Schema({
 
 
 const CommentSchema = new Schema({
+  commentAuthor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Profile",
+},
    userId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: "Profile"  // Reference to the Profile model, not User
@@ -28,6 +32,12 @@ const CommentSchema = new Schema({
       userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         firstName: String,
         lastName: String,
+      },
+    ],
+    mentions: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Profile",  // References the profiles of mentioned users
       },
     ],
 

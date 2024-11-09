@@ -2234,76 +2234,190 @@ export const likeIssue = async (req, res) => {
 
 
 
+
+
+
+
 // Comment on an  Issue
+
+
+
+
 export const commentIssue = async (req, res) => {
   try {
     const { issueId } = req.params;
+    const { text } = req.body;
+    const userId = req.userId; // Get the logged-in user's ID
 
+    // Fetch the profile of the commenter
+    const profile = await Profile.findOne({ userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
 
-    const { text} = req.body;
-    const userId = req.userId; 
+    // Detect mentions in the comment text (pattern `@[displayName](userId)`)
+    const mentionPattern = /@\[(.*?)\]\((.*?)\)/g;
+    const mentionedIds = [];
+    let match;
 
-  
+    // Extract and log each mention ID from text
+    while ((match = mentionPattern.exec(text)) !== null) {
+      const mentionedUserId = match[2]; // Extract userId directly
+      mentionedIds.push(mentionedUserId);
+    }
+
+    // Fetch profiles for all mentioned IDs to validate and store
+    const mentionedProfiles = await Profile.find({ _id: { $in: mentionedIds } });
     
+    if (!mentionedProfiles.length) {
+      console.log("No valid profiles found for mentions");
+    }
 
-
-
-  const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
-
-
-    // Create a new comment
-    const comment = new Comment({ userId:req.userId, issue: issueId, text });
-    await comment.save();
-  
-    const issue = await Issue.findByIdAndUpdate(issueId, {
-      
-        $push: { comments:{
-            _id: comment._id, 
-            text: comment.text,
-           userId:comment.userId,
-           userId: user._id,
-           firstName: user.firstName,
-           lastName: user.lastName,
-          //  file:comment.file
-        } 
-                 
-             },
-          
+    // Create and save the comment with the author and mention references
+    const comment = new Comment({
+      commentAuthor: profile._id,
+      issue: issueId,
+      userId: userId,
+      text: text,
+      mentions: mentionedIds,  // Store the mentioned profiles directly
     });
 
- // Create a new notification
- if (issue.userId.toString() !== userId) {
-  // Create notification only if the article is not liked by its owner
-  const notification = new Notification({
-    user: issue.userId,
-    type: 'comment',
-    issue: issue._id,
-    message: `${user.firstName} ${user.lastName} comment on your issue.`,
-  });
+    await comment.save();
 
-  await notification.save();
+    // Add the comment to the article's comments array
+    const issue = await Issue.findByIdAndUpdate(
+      issueId,
+      { $push: { comments: comment } }, // Push the comment into the comments array
+      { new: true } // Return the updated article
+    )
+      .populate({
+        path: 'comments.commentAuthor',
+        select: 'firstName lastName profilePicture userId',
+      })
+      .populate({
+        path: 'comments.mentions',
+        select: 'firstName lastName profilePicture',
+      });
 
-  // Emit socket event to the article owner
-    
-  pusher.trigger('issue-channel', 'new-comment', {
-    issueId,
-    userId,
-    commentText,
-    message: `User ${userId} commented on article ${issueId}.`,
-  });
-  // io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
-}
+    // Flag to track if the article owner was mentioned
+    let articleOwnerMentioned = false;
 
-await issue.save();
-    res.status(200).json({ message: 'Comment added successfully.',issue});
+    // Send notifications to mentioned users
+    for (const mentionedProfile of mentionedProfiles) {
+      if (mentionedProfile.userId.toString() === issue.userId.toString()) {
+        articleOwnerMentioned = true; // Mark that the article owner was mentioned
+      }
+
+      const mentionNotification = new Notification({
+        user: mentionedProfile.userId,  // The mentioned user's ID from Profile
+        type: 'mention',
+        issue: issue._id,
+        message: `${profile.firstName} mentioned you in a comment.`,
+      });
+      
+      await mentionNotification.save();
+
+      // Use Pusher to notify the mentioned user
+      pusher.trigger('job-channel', 'new-mention', {
+        mentionedUserId: mentionedProfile.userId,
+        issueId,
+        message: `You were mentioned in a comment by ${profile.firstName}.`,
+      });
+    }
+
+    // If the article owner wasn't mentioned, send a separate comment notification
+    if (!articleOwnerMentioned && issue.userId.toString() !== userId) {
+      const articleOwnerNotification = new Notification({
+        user: issue.userId,  // The article owner
+        type: 'comment',
+        issue: issue._id,
+        message: `${profile.firstName} commented on your article.`,
+      });
+      await articleOwnerNotification.save();
+
+      // Notify the article owner
+      pusher.trigger('job-channel', 'new-comment', {
+        issueId,
+        userId,
+        message: `User ${profile.firstName} commented on your article.`,
+      });
+    }
+
+    res.status(200).json({ message: 'Comment added successfully.', issue });
   } catch (error) {
     console.error('Error commenting on article:', error);
     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
   }
 };
+// export const commentIssue = async (req, res) => {
+//   try {
+//     const { issueId } = req.params;
+
+
+//     const { text} = req.body;
+//     const userId = req.userId; 
+
+  
+    
+
+
+
+//   const user = await User.findById(userId);
+//   if (!user) {
+//     return res.status(404).json({ message: 'User not found' });
+//   }
+
+
+//     // Create a new comment
+//     const comment = new Comment({ userId:req.userId, issue: issueId, text });
+//     await comment.save();
+  
+//     const issue = await Issue.findByIdAndUpdate(issueId, {
+      
+//         $push: { comments:{
+//             _id: comment._id, 
+//             text: comment.text,
+//            userId:comment.userId,
+//            userId: user._id,
+//            firstName: user.firstName,
+//            lastName: user.lastName,
+//           //  file:comment.file
+//         } 
+                 
+//              },
+          
+//     });
+
+//  // Create a new notification
+//  if (issue.userId.toString() !== userId) {
+//   // Create notification only if the article is not liked by its owner
+//   const notification = new Notification({
+//     user: issue.userId,
+//     type: 'comment',
+//     issue: issue._id,
+//     message: `${user.firstName} ${user.lastName} comment on your issue.`,
+//   });
+
+//   await notification.save();
+
+//   // Emit socket event to the article owner
+    
+//   pusher.trigger('issue-channel', 'new-comment', {
+//     issueId,
+//     userId,
+//     commentText,
+//     message: `User ${userId} commented on article ${issueId}.`,
+//   });
+//   // io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
+// }
+
+// await issue.save();
+//     res.status(200).json({ message: 'Comment added successfully.',issue});
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+//   }
+// };
 
 
 
@@ -2528,130 +2642,154 @@ export const likeLearn = async (req, res) => {
 };
 
 
-// Like an Learn
-// export const likeLearn = async (req, res) => {
-//   try {
-//     const { learnId } = req.params;
-//     const userId = req.userId; // Assuming user ID is available from the authenticated request
 
-//     // Fetch the article
-//     const learn = await Learn.findById(learnId);
-//     if (!learn) {
-//       return res.status(404).json({ message: 'Article not found' });
-//     }
-
-//     console.log('adhashd')
-//     // Fetch the user profile details
-//     const user = await User.findById(userId);
-//     if (!user) {
-//       return res.status(404).json({ message: 'User not found' });
-//     }
-
-//     const userProfile = {
-//       userId: user._id,
-//       firstName: user.firstName,
-//       lastName: user.lastName,
-//     };
-
-
-//  // Create a new notification
-//  if (learn.userId.toString() !== userId) {
-//   // Create notification only if the article is not liked by its owner
-//   const notification = new Notification({
-//     user: learn.userId,
-//     type: 'like',
-//     learn: learn._id,
-//     message: `${user.firstName} ${user.lastName} liked your learn.`,
-//   });
-
-//   await notification.save();
-
-
-//   pusher.trigger('learn-channel', 'like-learn', {
-//     learnId,
-//     userId,
-//     message: `${user.firstName} ${user.lastName} liked yoursSSSSsss learn.`,
-//   });
-//   // Emit socket event to the article owner
-//   // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
-// }
-
-//     // Check if the user has already liked the article
-//     const existingLikeIndex = learn.likedBy.findIndex(
-//       (likedUser) => likedUser.userId.toString() === userId
-//     );
-
-//     if (existingLikeIndex === -1) {
-//       // If user hasn't liked the article yet, like it
-//       learn.likedBy.push(userProfile);
-//       learn.likes += 1;
-//            // Emit a socket event that the article was liked
-//           //  io.emit('like_article', { articleId, userId });
-//            console.log(learnId)
-//     } else {
-//       // If user has already liked the article, unlike it
-//       learn.likedBy.splice(existingLikeIndex, 1);
-//       learn.likes -= 1;
-//       // Emit a socket event that the article was unliked
-//       // io.emit('article_unliked', { articleId, userId });
-//     }
-
-//     await learn.save();
-
-//     // Emit a socket event to notify clients about the updated like count
-//     // emitLikeNotification(articleId, article.likes);
-
-//     res.status(200).json({
-//       learnId,
-//       likes: learn.likes,
-//       likedBy: learn.likedBy,
-//       message: 'Article liked/unliked successfully.',
-//     });
-//   } catch (error) {
-//     console.error('Error liking article:', error);
-//     res.status(500).json({ message: 'An error occurred while liking the article.', error: error.message });
-//   }
-// };
 
 
 export const commentLearn = async (req, res) => {
   try {
     const { learnId } = req.params;
     const { text } = req.body;
-    const userId = req.userId;  // Get the logged-in user's ID from auth middleware
+    const userId = req.userId; // Get the logged-in user's ID
 
-    // Find the user's profile based on userId
+    // Fetch the profile of the commenter
     const profile = await Profile.findOne({ userId });
     if (!profile) {
       return res.status(404).json({ message: 'Profile not found' });
     }
 
-    // Create a new comment with the correct userId (profileId)
+    // Detect mentions in the comment text (pattern `@[displayName](userId)`)
+    const mentionPattern = /@\[(.*?)\]\((.*?)\)/g;
+    const mentionedIds = [];
+    let match;
+
+    // Extract and log each mention ID from text
+    while ((match = mentionPattern.exec(text)) !== null) {
+      const mentionedUserId = match[2]; // Extract userId directly
+      mentionedIds.push(mentionedUserId);
+    }
+
+    // Fetch profiles for all mentioned IDs to validate and store
+    const mentionedProfiles = await Profile.find({ _id: { $in: mentionedIds } });
+    
+    if (!mentionedProfiles.length) {
+      console.log("No valid profiles found for mentions");
+    }
+
+    // Create and save the comment with the author and mention references
     const comment = new Comment({
-      userId: profile._id,  // Set userId to the Profile reference
-      text: text,  // Add the comment text
+      commentAuthor: profile._id,
+      learn: learnId,
+      userId: userId,
+      text: text,
+      mentions: mentionedIds,  // Store the mentioned profiles directly
     });
+
     await comment.save();
 
-    // Add the comment to the learn document
+    // Add the comment to the article's comments array
     const learn = await Learn.findByIdAndUpdate(
       learnId,
-      { $push: { comments: comment } },   // Add the new comment to comments array
-      { new: true }                       // Return the updated Learn document
-    ).populate({
-      path: 'comments.userId',  // Populate comment authors' profiles
-      select: 'firstName lastName profilePicture',  // Only return the necessary fields
-    });
+      { $push: { comments: comment } }, // Push the comment into the comments array
+      { new: true } // Return the updated article
+    )
+      .populate({
+        path: 'comments.commentAuthor',
+        select: 'firstName lastName profilePicture userId',
+      })
+      .populate({
+        path: 'comments.mentions',
+        select: 'firstName lastName profilePicture',
+      });
 
-    res.status(200).json({
-      message: 'Comment added successfully.',
-      learn,
-    });
+    // Flag to track if the article owner was mentioned
+    let articleOwnerMentioned = false;
+
+    // Send notifications to mentioned users
+    for (const mentionedProfile of mentionedProfiles) {
+      if (mentionedProfile.userId.toString() === learn.userId.toString()) {
+        articleOwnerMentioned = true; // Mark that the article owner was mentioned
+      }
+
+      const mentionNotification = new Notification({
+        user: mentionedProfile.userId,  // The mentioned user's ID from Profile
+        type: 'mention',
+        learn: learn._id,
+        message: `${profile.firstName} mentioned you in a comment.`,
+      });
+      
+      await mentionNotification.save();
+
+      // Use Pusher to notify the mentioned user
+      pusher.trigger('job-channel', 'new-mention', {
+        mentionedUserId: mentionedProfile.userId,
+        learnId,
+        message: `You were mentioned in a comment by ${profile.firstName}.`,
+      });
+    }
+
+    // If the article owner wasn't mentioned, send a separate comment notification
+    if (!articleOwnerMentioned && learn.userId.toString() !== userId) {
+      const articleOwnerNotification = new Notification({
+        user: learn.userId,  // The article owner
+        type: 'comment',
+        learn: learn._id,
+        message: `${profile.firstName} commented on your article.`,
+      });
+      await articleOwnerNotification.save();
+
+      // Notify the article owner
+      pusher.trigger('job-channel', 'new-comment', {
+        learnId,
+        userId,
+        message: `User ${profile.firstName} commented on your article.`,
+      });
+    }
+
+    res.status(200).json({ message: 'Comment added successfully.', learn });
   } catch (error) {
-    console.error('Error commenting on learn:', error);
-    res.status(500).json({ message: 'An error occurred while commenting on the learn.' });
+    console.error('Error commenting on article:', error);
+    res.status(500).json({ message: 'An error occurred while commenting on the article.' });
   }
 };
+
+// export const commentLearn = async (req, res) => {
+//   try {
+//     const { learnId } = req.params;
+//     const { text } = req.body;
+//     const userId = req.userId;  // Get the logged-in user's ID from auth middleware
+
+//     // Find the user's profile based on userId
+//     const profile = await Profile.findOne({ userId });
+//     if (!profile) {
+//       return res.status(404).json({ message: 'Profile not found' });
+//     }
+
+//     // Create a new comment with the correct userId (profileId)
+//     const comment = new Comment({
+//       userId: profile._id,  // Set userId to the Profile reference
+//       text: text,  // Add the comment text
+//     });
+//     await comment.save();
+
+//     // Add the comment to the learn document
+//     const learn = await Learn.findByIdAndUpdate(
+//       learnId,
+//       { $push: { comments: comment } },   // Add the new comment to comments array
+//       { new: true }                       // Return the updated Learn document
+//     ).populate({
+//       path: 'comments.userId',  // Populate comment authors' profiles
+//       select: 'firstName lastName profilePicture',  // Only return the necessary fields
+//     });
+
+//     res.status(200).json({
+//       message: 'Comment added successfully.',
+//       learn,
+//     });
+//   } catch (error) {
+//     console.error('Error commenting on learn:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the learn.' });
+//   }
+// };
 
 
 
@@ -3540,7 +3678,11 @@ export const getallIssue = async (req, res) => {
     const issue = await Issue.find()
       .skip(skip)
       .limit(Number(limit))
-      .populate('author', 'firstName lastName profilePicture')  // Dynamically fetch author details
+      .populate('author', 'firstName lastName profilePicture')
+      .populate({
+        path: 'comments.commentAuthor',  // Populate comment authors
+        select: 'firstName lastName profilePicture userId',  // Select necessary fields from Profile
+      })   // Dynamically fetch author details
       .exec();
 
 
@@ -4073,9 +4215,9 @@ export const getallLearn = async (req, res) => {
       .limit(Number(limit))
       .populate('author', 'firstName lastName profilePicture')  // Dynamically fetch author details
       .populate({
-        path: 'comments.userId',  // Populate each comment's userId (Profile details)
-        select: 'firstName lastName profilePicture',  // Only return necessary fields
-      })
+        path: 'comments.commentAuthor',  // Populate comment authors
+        select: 'firstName lastName profilePicture userId',  // Select necessary fields from Profile
+      }) 
       .exec();
 
     const totalPages = Math.ceil(totalItems / limit);
