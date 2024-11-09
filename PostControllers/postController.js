@@ -487,7 +487,7 @@ export const commentJob = async (req, res) => {
         user: job.userId,  // The article owner
         type: 'comment',
         job: job._id,
-        message: `${profile.firstName} commented on your article.`,
+        message: `${profile.firstName} commented on your job.`,
       });
       await articleOwnerNotification.save();
 
@@ -495,7 +495,7 @@ export const commentJob = async (req, res) => {
       pusher.trigger('job-channel', 'new-comment', {
         jobId,
         userId,
-        message: `User ${profile.firstName} commented on your article.`,
+        message: `User ${profile.firstName} commented on your job.`,
       });
     }
 
@@ -2331,7 +2331,7 @@ export const commentIssue = async (req, res) => {
         user: issue.userId,  // The article owner
         type: 'comment',
         issue: issue._id,
-        message: `${profile.firstName} commented on your article.`,
+        message: `${profile.firstName} commented on your issue.`,
       });
       await articleOwnerNotification.save();
 
@@ -2339,7 +2339,7 @@ export const commentIssue = async (req, res) => {
       pusher.trigger('issue-channel', 'new-comment', {
         issueId,
         userId,
-        message: `User ${profile.firstName} commented on your article.`,
+        message: `User ${profile.firstName} commented on your issue.`,
       });
     }
 
@@ -2733,7 +2733,7 @@ export const commentLearn = async (req, res) => {
         user: learn.userId,  // The article owner
         type: 'comment',
         learn: learn._id,
-        message: `${profile.firstName} commented on your article.`,
+        message: `${profile.firstName} commented on your learn.`,
       });
       await articleOwnerNotification.save();
 
@@ -2741,7 +2741,7 @@ export const commentLearn = async (req, res) => {
       pusher.trigger('learn-channel', 'new-comment', {
         learnId,
         userId,
-        message: `User ${profile.firstName} commented on your article.`,
+        message: `User ${profile.firstName} commented on your learn.`,
       });
     }
 
