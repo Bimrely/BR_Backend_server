@@ -2318,7 +2318,7 @@ export const commentIssue = async (req, res) => {
       await mentionNotification.save();
 
       // Use Pusher to notify the mentioned user
-      pusher.trigger('job-channel', 'new-mention', {
+      pusher.trigger('issue-channel', 'new-mention', {
         mentionedUserId: mentionedProfile.userId,
         issueId,
         message: `You were mentioned in a comment by ${profile.firstName}.`,
@@ -2336,7 +2336,7 @@ export const commentIssue = async (req, res) => {
       await articleOwnerNotification.save();
 
       // Notify the article owner
-      pusher.trigger('job-channel', 'new-comment', {
+      pusher.trigger('issue-channel', 'new-comment', {
         issueId,
         userId,
         message: `User ${profile.firstName} commented on your article.`,
@@ -2720,7 +2720,7 @@ export const commentLearn = async (req, res) => {
       await mentionNotification.save();
 
       // Use Pusher to notify the mentioned user
-      pusher.trigger('job-channel', 'new-mention', {
+      pusher.trigger('learn-channel', 'new-mention', {
         mentionedUserId: mentionedProfile.userId,
         learnId,
         message: `You were mentioned in a comment by ${profile.firstName}.`,
@@ -2738,7 +2738,7 @@ export const commentLearn = async (req, res) => {
       await articleOwnerNotification.save();
 
       // Notify the article owner
-      pusher.trigger('job-channel', 'new-comment', {
+      pusher.trigger('learn-channel', 'new-comment', {
         learnId,
         userId,
         message: `User ${profile.firstName} commented on your article.`,
