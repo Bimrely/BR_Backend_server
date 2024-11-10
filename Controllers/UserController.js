@@ -526,8 +526,7 @@ export const editUserProfile = async (req, res) => {
 
 const transporter = nodemailer.createTransport({
   host: "sandbox.smtp.mailtrap.io",
-  port: 587,  // Use port 587 for STARTTLS
-  secure: false, // Use STARTTLS instead of SSL
+  port: 2525,
   auth: {
     user: "28dd11685e37e7",
     pass: "e501c0cc633f3f"
