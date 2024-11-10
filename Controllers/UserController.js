@@ -526,7 +526,8 @@ export const editUserProfile = async (req, res) => {
 
 const transporter = nodemailer.createTransport({
   host: "sandbox.smtp.mailtrap.io",
-  port: 2525,
+  port: 465,
+  secure: true,
   auth: {
     user: "28dd11685e37e7",
     pass: "e501c0cc633f3f"
