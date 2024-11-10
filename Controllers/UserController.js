@@ -6,7 +6,7 @@ import { Profile } from "../Models/userprofile.js";
 import crypto from 'crypto';
 import nodemailer from 'nodemailer'
 import { Article } from "../Models/article.js";
-
+import { Feedback } from "../Models/feedback.js";
 
 
 
@@ -528,10 +528,45 @@ const transporter = nodemailer.createTransport({
   host: "sandbox.smtp.mailtrap.io",
   port: 2525,
   auth: {
-    user: "bb5814413c0572",
-    pass: "11264f00bc7694"
+    user: "28dd11685e37e7",
+    pass: "e501c0cc633f3f"
   }
 });
+
+
+export const submitFeedback = async (req, res) => {
+  try {
+    const { feedbackText, rating } = req.body;
+    const userId = req.userId;  // Retrieved from auth middleware
+
+    // Save feedback to the database
+    const feedback = new Feedback({ userId, feedbackText, rating });
+    await feedback.save();
+
+    // Set up the email data
+    const mailOptions = {
+      from:"",
+      to: "rafay.burraq@gmail.com", // The email address you want to receive feedback notifications at
+      subject: 'New User Feedback Received',
+      text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`,
+    };
+
+    // Send the email
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('Error sending email:', error);
+      } else {
+        console.log('Email sent:', info.response);
+      }
+    });
+
+    res.status(201).json({ message: 'Feedback submitted successfully.' });
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    res.status(500).json({ message: 'An error occurred while submitting feedback.' });
+  }
+};
+
 
 
 
