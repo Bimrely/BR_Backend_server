@@ -550,15 +550,24 @@ export const submitFeedback = async (req, res) => {
     await feedback.save();
 
     // Set up the email data
-    const emailData = {
-      from: "no-reply@yourdomain.com",
-      to: "rafay.burraq@gmail.com",
-      subject: 'New User Feedback Received',
-      text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`,
-    };
+    (async function() {
+      try {
+        const data = await resend.emails.send({
+          from: 'Acme <onboarding@resend.dev>',
+          to: ['rafay.burraq@hmail.com'],
+          subject: 'Hello World',
+          text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`,
+        
+        });
+    
+        console.log(data);
+      } catch (error) {
+        console.error(error);
+      }
+    })();
 
     // Send the email
-    await resend.sendEmail(emailData);
+    // await resend.sendEmail(emailData);
     res.status(201).json({ message: 'Feedback submitted successfully and email sent.' });
   } catch (error) {
     console.error('Error submitting feedback or sending email:', error);
