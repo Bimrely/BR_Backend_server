@@ -540,7 +540,7 @@ const transporter = nodemailer.createTransport({
 
 
 // Define the Resend API key in your environment
-const resendApiKey = re_CD2UZ1p2_3zs51dtx3PH64jdJ2rg7MZQK;
+const resendApiKey = "re_CD2UZ1p2_3zs51dtx3PH64jdJ2rg7MZQK";
 
 export const submitFeedback = async (req, res) => {
   try {
