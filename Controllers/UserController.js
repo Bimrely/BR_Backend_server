@@ -8,7 +8,7 @@ import nodemailer from 'nodemailer'
 import { Article } from "../Models/article.js";
 import { Feedback } from "../Models/feedback.js";
 import axios from 'axios';
-
+import Resend from 'resend';
 
      
            // Sign Up Function Start //
@@ -537,11 +537,9 @@ const transporter = nodemailer.createTransport({
 
 
 
+const resend = new Resend('re_CD2UZ1p2_3zs51dtx3PH64jdJ2rg7MZQK'); // Set your Resend API key in environment variables
 
-
-// Define the Resend API key in your environment
-const resendApiKey = "re_CD2UZ1p2_3zs51dtx3PH64jdJ2rg7MZQK";
-
+// Create the submitFeedback function
 export const submitFeedback = async (req, res) => {
   try {
     const { feedbackText, rating } = req.body;
@@ -551,7 +549,7 @@ export const submitFeedback = async (req, res) => {
     const feedback = new Feedback({ userId, feedbackText, rating });
     await feedback.save();
 
-    // Set up the email data for Resend API
+    // Set up the email data
     const emailData = {
       from: "no-reply@yourdomain.com",
       to: "rafay.burraq@gmail.com",
@@ -559,14 +557,8 @@ export const submitFeedback = async (req, res) => {
       text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`,
     };
 
-    // Send the email through Resend API using axios
-    await axios.post('https://api.resend.com/emails', emailData, {
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
+    // Send the email
+    await resend.sendEmail(emailData);
     res.status(201).json({ message: 'Feedback submitted successfully and email sent.' });
   } catch (error) {
     console.error('Error submitting feedback or sending email:', error);
