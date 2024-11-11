@@ -545,12 +545,11 @@ export const submitFeedback = async (req, res) => {
 
     // Set up the email data
     const mailOptions = {
-      from:"",
-      to: "rafay.burraq@gmail.com", // The email address you want to receive feedback notifications at
+      from: '"YourApp Feedback" <no-reply@yourapp.com>', // Valid "from" email
+      to: "rafay.burraq@gmail.com",
       subject: 'New User Feedback Received',
-      text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`,
+      text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`
     };
-
     // Send the email
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
