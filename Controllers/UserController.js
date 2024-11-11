@@ -554,7 +554,7 @@ export const submitFeedback = async (req, res) => {
       try {
         const data = await resend.emails.send({
           from: 'Acme <onboarding@resend.dev>',
-          to: ['rafay.burraq@hmail.com'],
+          to: ['delivered@resend.dev'],
           subject: 'Hello World',
           text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`,
         
