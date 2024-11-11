@@ -8,7 +8,7 @@ import nodemailer from 'nodemailer'
 import { Article } from "../Models/article.js";
 import { Feedback } from "../Models/feedback.js";
 import axios from 'axios';
-import Resend from 'resend';
+import { Resend } from 'resend';
 
      
            // Sign Up Function Start //
