@@ -7,7 +7,7 @@ import crypto from 'crypto';
 import nodemailer from 'nodemailer'
 import { Article } from "../Models/article.js";
 import { Feedback } from "../Models/feedback.js";
-
+import axios from 'axios';
 
 
      
@@ -534,6 +534,14 @@ const transporter = nodemailer.createTransport({
 });
 
 
+
+
+
+
+
+// Define the Resend API key in your environment
+const resendApiKey = re_CD2UZ1p2_3zs51dtx3PH64jdJ2rg7MZQK;
+
 export const submitFeedback = async (req, res) => {
   try {
     const { feedbackText, rating } = req.body;
@@ -543,28 +551,62 @@ export const submitFeedback = async (req, res) => {
     const feedback = new Feedback({ userId, feedbackText, rating });
     await feedback.save();
 
-    // Set up the email data
-    const mailOptions = {
-      from: '"YourApp Feedback" <no-reply@yourapp.com>', // Valid "from" email
+    // Set up the email data for Resend API
+    const emailData = {
+      from: "no-reply@yourdomain.com",
       to: "rafay.burraq@gmail.com",
       subject: 'New User Feedback Received',
-      text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`
+      text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`,
     };
-    // Send the email
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Error sending email:', error);
-      } else {
-        console.log('Email sent:', info.response);
-      }
+
+    // Send the email through Resend API using axios
+    await axios.post('https://api.resend.com/emails', emailData, {
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
     });
 
-    res.status(201).json({ message: 'Feedback submitted successfully.' });
+    res.status(201).json({ message: 'Feedback submitted successfully and email sent.' });
   } catch (error) {
-    console.error('Error submitting feedback:', error);
+    console.error('Error submitting feedback or sending email:', error);
     res.status(500).json({ message: 'An error occurred while submitting feedback.' });
   }
 };
+
+
+
+// export const submitFeedback = async (req, res) => {
+//   try {
+//     const { feedbackText, rating } = req.body;
+//     const userId = req.userId;  // Retrieved from auth middleware
+
+//     // Save feedback to the database
+//     const feedback = new Feedback({ userId, feedbackText, rating });
+//     await feedback.save();
+
+//     // Set up the email data
+//     const mailOptions = {
+//       from: '"YourApp Feedback" <no-reply@yourapp.com>', // Valid "from" email
+//       to: "rafay.burraq@gmail.com",
+//       subject: 'New User Feedback Received',
+//       text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`
+//     };
+//     // Send the email
+//     transporter.sendMail(mailOptions, (error, info) => {
+//       if (error) {
+//         console.error('Error sending email:', error);
+//       } else {
+//         console.log('Email sent:', info.response);
+//       }
+//     });
+
+//     res.status(201).json({ message: 'Feedback submitted successfully.' });
+//   } catch (error) {
+//     console.error('Error submitting feedback:', error);
+//     res.status(500).json({ message: 'An error occurred while submitting feedback.' });
+//   }
+// };
 
 
 
