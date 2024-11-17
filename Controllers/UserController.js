@@ -14,61 +14,76 @@ import { Resend } from 'resend';
            // Sign Up Function Start //
 
 export const Signup = async (req, res, next) => {
-  const { firstName, lastName, email, password,userId} = req.body;
 
-  //checking user is already exits//
+  try {
+    const { firstName, lastName, email } = req.body;
+    const encryptedPassword = req.headers.authorization.split(' ')[1]; // Extract password from header
+    const bytes = CryptoJS.AES.decrypt(encryptedPassword, 'secret-key');
+    const decryptedPassword = bytes.toString(CryptoJS.enc.Utf8);
 
-  const exitsUser = await User.findOne({ email: email });
-  if (exitsUser) {
-    return res.status(400).json({ message: "user is already exists" });
+    // Proceed with user creation using decryptedPassword
+    const hashedPassword = await bcrypt.hash(decryptedPassword, 10);
+
+    const newUser = await User.create({ firstName, lastName, email, password: hashedPassword });
+    res.status(201).json({ message: 'User created successfully!' });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
   }
+  // const { firstName, lastName, email, password,userId} = req.body;
 
-  // genetare hashed password//
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt);
+  // //checking user is already exits//
 
-  // craete user //
+  // const exitsUser = await User.findOne({ email: email });
+  // if (exitsUser) {
+  //   return res.status(400).json({ message: "user is already exists" });
+  // }
 
-  const user = await User.create({
-    firstName: firstName,
-    lastName: lastName,
-    email: email,
-    password: hashedPassword,
+  // // genetare hashed password//
+  // const salt = await bcrypt.genSalt(10);
+  // const hashedPassword = await bcrypt.hash(password, salt);
+
+  // // craete user //
+
+  // const user = await User.create({
+  //   firstName: firstName,
+  //   lastName: lastName,
+  //   email: email,
+  //   password: hashedPassword,
    
 
-  });
+  // });
  
   
   
-   // Create user profile
-   const newProfile = await Profile.create({
-    userId:user._id,
-    // userId:req.userId,
+  //  // Create user profile
+  //  const newProfile = await Profile.create({
+  //   userId:user._id,
+  //   // userId:req.userId,
       
-        firstName,
-        lastName,
+  //       firstName,
+  //       lastName,
        
-        // experience,
-        // education,
+  //       // experience,
+  //       // education,
       
 
-    // Any other fields you want to include in the profile
-  });
+  //   // Any other fields you want to include in the profile
+  // });
 
 
 
 
 
-  // generating token logic //
+  // // generating token logic //
 
-  const token = jwt.sign({ email: user.email, id: user._id }, SECRET_KEY);
+  // const token = jwt.sign({ email: user.email, id: user._id }, SECRET_KEY);
 
-  res.status(200).json({
-    success: true,
-    user,
-    token,
-    newProfile
-  });
+  // res.status(200).json({
+  //   success: true,
+  //   user,
+  //   token,
+  //   newProfile
+  // });
 };
 
 // Sign Up Function End //
