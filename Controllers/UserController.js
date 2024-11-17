@@ -3,13 +3,13 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 const SECRET_KEY = "SECRET";
 import { Profile } from "../Models/userprofile.js";
-import crypto from 'crypto';
+// import crypto from 'crypto';
 import nodemailer from 'nodemailer'
 import { Article } from "../Models/article.js";
 import { Feedback } from "../Models/feedback.js";
 import axios from 'axios';
 import { Resend } from 'resend';
-
+import CryptoJS from 'crypto-js';
      
            // Sign Up Function Start //
 
