@@ -3,13 +3,13 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 const SECRET_KEY = "SECRET";
 import { Profile } from "../Models/userprofile.js";
-// import crypto from 'crypto';
+import crypto from 'crypto';
 import nodemailer from 'nodemailer'
 import { Article } from "../Models/article.js";
 import { Feedback } from "../Models/feedback.js";
 import axios from 'axios';
 import { Resend } from 'resend';
-import CryptoJS from 'crypto-js';
+
      
            // Sign Up Function Start //
 
@@ -94,34 +94,29 @@ export const logOut = async(req,res)=>{
 
 
 
+
 export const changePassword = async (req, res) => {
   const { oldPassword, newPassword } = req.body;
-  const userId = req.userId; // Assuming auth middleware sets `req.userId`
+  const userId = req.userId;  // Assuming auth middleware sets `req.userId`
 
   try {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Hash the provided oldPassword using the same hashing logic
-    const hashedOldPassword = CryptoJS.createHash('sha256').update(oldPassword).digest('hex');
-
-    console.log(user.password)
-    // Check if old password matches the stored hash
-    if (hashedOldPassword !== user.password) {
-      return res.status(400).json({ message: 'Incorrect current password' });
-    }
+    // Check if old password matches
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Incorrect current password' });
 
     // Hash the new password and update the user's password
-    const hashedNewPassword = CryptoJS.createHash('sha256').update(newPassword).digest('hex');
-    user.password = hashedNewPassword;
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
     res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
-    console.error('Error updating password:', error);
     res.status(500).json({ message: 'Error updating password' });
   }
 };
+
 
 
 
