@@ -14,61 +14,91 @@ import { Resend } from 'resend';
            // Sign Up Function Start //
 
 export const Signup = async (req, res, next) => {
-  const { firstName, lastName, email, password,userId} = req.body;
 
-  //checking user is already exits//
 
-  const exitsUser = await User.findOne({ email: email });
-  if (exitsUser) {
-    return res.status(400).json({ message: "user is already exists" });
+  const { email, firstName, lastName, password } = req.body;
+
+  try {
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ error: 'User with this email already exists' });
+    }
+
+    // Hash the password using CryptoJS
+    const hashedPassword = CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
+
+    // Create and save the new user
+    const user = new User({
+      email,
+      firstName,
+      lastName,
+      password: hashedPassword,
+    });
+    await user.save();
+
+    // Return success response
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ error: 'An error occurred during registration' });
   }
 
-  // genetare hashed password//
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt);
+  // const { firstName, lastName, email, password,userId} = req.body;
 
-  // craete user //
+  // //checking user is already exits//
 
-  const user = await User.create({
-    firstName: firstName,
-    lastName: lastName,
-    email: email,
-    password: hashedPassword,
+  // const exitsUser = await User.findOne({ email: email });
+  // if (exitsUser) {
+  //   return res.status(400).json({ message: "user is already exists" });
+  // }
+
+  // // genetare hashed password//
+  // const salt = await bcrypt.genSalt(10);
+  // const hashedPassword = await bcrypt.hash(password, salt);
+
+  // // craete user //
+
+  // const user = await User.create({
+  //   firstName: firstName,
+  //   lastName: lastName,
+  //   email: email,
+  //   password: hashedPassword,
    
 
-  });
+  // });
  
   
   
-   // Create user profile
-   const newProfile = await Profile.create({
-    userId:user._id,
-    // userId:req.userId,
+  //  // Create user profile
+  //  const newProfile = await Profile.create({
+  //   userId:user._id,
+  //   // userId:req.userId,
       
-        firstName,
-        lastName,
+  //       firstName,
+  //       lastName,
        
-        // experience,
-        // education,
+  //       // experience,
+  //       // education,
       
 
-    // Any other fields you want to include in the profile
-  });
+  //   // Any other fields you want to include in the profile
+  // });
 
 
 
 
 
-  // generating token logic //
+  // // generating token logic //
 
-  const token = jwt.sign({ email: user.email, id: user._id }, SECRET_KEY);
+  // const token = jwt.sign({ email: user.email, id: user._id }, SECRET_KEY);
 
-  res.status(200).json({
-    success: true,
-    user,
-    token,
-    newProfile
-  });
+  // res.status(200).json({
+  //   success: true,
+  //   user,
+  //   token,
+  //   newProfile
+  // });
 };
 
 // Sign Up Function End //
@@ -94,35 +124,61 @@ export const logOut = async(req,res)=>{
 
 export const SignIn = async(req, res, next)=>{
 
-  const {email,password} = req.body;
-  
-  // checking if user is not exist//
-  
-  const existUser = await User.findOne({email:email,});
-  
-  if(!existUser){
-      return res.status(404).json({message:"user not found"});
 
+  const { email, password } = req.body;
+
+  try {
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Compare hashed passwords
+    const hashedPassword = CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
+    if (user.password !== hashedPassword) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    // Generate JWT
+    const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, { expiresIn: '1h' });
+
+    // Send response with token
+    res.status(200).json({ message: 'Login successful', token, user });
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    res.status(500).json({ error: 'An error occurred during login' });
   }
 
-  // compare hashedPassword//
+//   const {email,password} = req.body;
+  
+//   // checking if user is not exist//
+  
+//   const existUser = await User.findOne({email:email,});
+  
+//   if(!existUser){
+//       return res.status(404).json({message:"user not found"});
 
-  const matchePassword = await bcrypt.compare(password,existUser.password);
+//   }
 
-   if(!matchePassword){
+//   // compare hashedPassword//
 
-    return res.status(404).json({message:"invalid credentails"});
-   }   
+//   const matchePassword = await bcrypt.compare(password,existUser.password);
 
-// genetaring token//
+//    if(!matchePassword){
 
- const token = jwt.sign({email:existUser.email, id:existUser._id},SECRET_KEY);
+//     return res.status(404).json({message:"invalid credentails"});
+//    }   
 
- res.status(200).json({
-  success: true,
-  existUser,
-  token,
-});
+// // genetaring token//
+
+//  const token = jwt.sign({email:existUser.email, id:existUser._id},SECRET_KEY);
+
+//  res.status(200).json({
+//   success: true,
+//   existUser,
+//   token,
+// });
 
 
 }
@@ -521,6 +577,32 @@ export const editUserProfile = async (req, res) => {
 //   //   res.status(500).json({ message: 'Error updating user profile', error });
 //   // }
 // };
+
+
+
+export const changePassword = async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const userId = req.userId;  // Assuming auth middleware sets `req.userId`
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Check if old password matches
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Incorrect current password' });
+
+    // Hash the new password and update the user's password
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating password' });
+  }
+};
+
+
 
 
 

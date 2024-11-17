@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Signup, resetPassword, setPassword, submitFeedback } from '../Controllers/UserController.js';
+import { Signup, changePassword, resetPassword, setPassword, submitFeedback } from '../Controllers/UserController.js';
 import { SignIn } from '../Controllers/UserController.js';
 import {createUserProfile,editUserProfile,logOut,getProfile, getAllProfiles,getProfileByUserId}from '../Controllers/UserController.js';
 import {auth} from '../middleware/auth.js'
@@ -33,7 +33,7 @@ router.post('/forget-password', auth,resetPassword)
 router.put('/set-password/:token',auth, setPassword)
 
 
-
+router.put('/change-password', auth, changePassword);
 router.post('/submit-feedback', auth,submitFeedback)
 // router.get('/login',passport.authenticate('google', { scope: ['profile', 'email']}));
 // router.get('/auth/google/callback',
