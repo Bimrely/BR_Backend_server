@@ -531,7 +531,7 @@ export const changePassword = async (req, res) => {
   try {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
-
+  console.log(user.password)
     // Check if old password matches
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Incorrect current password' });
