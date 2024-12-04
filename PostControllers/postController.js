@@ -3897,7 +3897,7 @@ export const saveYouTubeData = async (req, res) => {
     //   return res.status(400).json({ message: 'Video ID, title, user ID, and API key are required' });
     // }
     const API_KEY = 'AIzaSyC__44NzVKI2fNImwSu_d7T8ejLGGd5BPE';
-    const channelId = 'UCapzEjUWyv7H4GtPQrgybTQ';
+    const channelId = 'UC-Z61rrjUu-YwySJq52_-fw';
     let nextPageToken = 'CAUQAA';
 
     const response = await axios.get(`https://www.googleapis.com/youtube/v3/search`, {

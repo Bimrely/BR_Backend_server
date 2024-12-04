@@ -402,7 +402,7 @@ router.get('/getJobs-api' ,auth,getAllapi);
 
 // get youtube videos //
 
-router.get('/videos' ,auth,Videos);
+router.get('/videos' ,Videos);
 
 router.get('/saveYouTubeData' ,auth,saveYouTubeData);
 

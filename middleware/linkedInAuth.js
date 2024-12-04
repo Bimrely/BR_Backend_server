@@ -18,7 +18,7 @@ import {User} from '../Models/userModel.js';
       callbackURL: 'http://localhost:7000/auth/linkedin/callback',
       scope: ['r_emailaddress', 'r_liteprofile'],
       state: true,
-      accessToken:"AQUOkZ1AeQ0ynKwFRQecpz-2OxG8-J_H7OMZ4jinRvlsm7U6d6ifWabscLvPOqqHXvFPIir6u8qUA2BWqx_QXqNI0xXAbXWg9VDIt_ZGrwfmTDl7VgXkE-j-BCewVS7OMXGFWIFVbyQdw3DNSd3EZhkMUYrnm0oOcZKVpRQPXXxTaUDPvy28Sn-KXFSvqmaNyK1FwRlDIgPB9aR6kh2WvWG4Jp6I7hQIpAO9U85DvHaZIB7hB3KpbEdelgfAqO9lOsIrONNTBofLpd-To8LiagXOdeWnCOoPqKn_v35AljJ9DxfZAv-ydDEmXide83qTTZiW-oqFlh-l2v0mIMmLcuwv6YEgbg"
+      accessToken:"AQWYwEtFa-3GfSpque1KKQOib7tlTevdvkhqLV3_50COr2GUMZT2T_418FxOQ2q_6Pb1axqvZo1lDmhv9bZTkAdK-gSnkWV96RzyWzV5RCM4-SkFxWq4VY9SXKTaHna9Mhp_7A-4Feoovm58-FLgblNsaoubjVTCby0d5ooPUyYe8Iwi0rVhTJYWdQxRhsdZ9mr3i5ETpW0z_PHRjhfNnhgDP0yNln1ZS9TaxoLKRDnZcaqaCrxch2XJNryEN1GD2AyJoAiQYc2xSmYq-gEyXoCw7PgbNcjLZD3rkqRHjKZhhHVXLCW_3COt9KBwSWA6ZRJ85dk5Cyc3QXjmKuRopl7f-oiGfw"
     },
 
 

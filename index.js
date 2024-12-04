@@ -6,10 +6,17 @@ import { connectDB } from './db.js';
 import routesForApp from './Routes.js';
 // import http from 'http';
 // import { Server } from 'socket.io';
-
+import passport from './middleware/linkedInAuth.js';
+import { User } from './Models/userModel.js';
+import session from 'express-session';
+import jwt from "jsonwebtoken"
 const app = express();
 
-
+// function isLoggedIn(req,res,next){
+//   console.log('rest')
+//   !req.user ? next(): res.sendStatus(401);
+//   console.log('rest')
+//   }
 
 // const server = http.createServer(app);
 // const io = new Server(server, {
@@ -24,10 +31,82 @@ app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 app.use(cors());
 app.use(express.json());
 
+
+
+app.use(
+    session({
+      secret: 'YOUR_SESSION_SECRET',
+      resave: false,
+      saveUninitialized: false,
+    })
+  );
+
 app.get('/', (req, res) => {
   res.send('Welcome to Node Babel');
   console.log("running");
 });
+
+
+
+// Login route for linkedin //
+app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
+
+app.get(
+  '/auth/linkedin/callback',
+  passport.authenticate('linkedin', { failureRedirect: '/login' }),
+  async (req, res) => {
+    try {
+      const user = req.user; // Fetched user from passport strategy
+      const token = jwt.sign({ id: user._id, email: user.email }, process.env.SECRET_KEY, {
+        expiresIn: '1h',
+      });
+
+      // Redirect to frontend with token and user details in query params
+      res.redirect(
+        `http://localhost:3000/auth/linkedin/callback?token=${token}&user=${user._id}`
+      );
+    } catch (error) {
+      console.error('LinkedIn callback error:', error);
+      res.redirect('/login');
+    }
+  }
+);
+
+
+
+
+
+
+
+
+// app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
+
+// app.get(
+//   '/auth/linkedin/callback',
+//   passport.authenticate('linkedin', { 
+//     successRedirect:'/protected',
+//     failureRedirect: '/api/login/error' 
+        
+//   }),
+//   (req, res) => {
+//     // Successful authentication, redirect or respond with a success message
+//     res.send('Authentication successful!');
+//   }
+// );
+
+
+
+// app.get('/protected', isLoggedIn,async(req, res) => {
+  
+  
+//   // const {firstName} = req.body;
+
+//   // console.log(firstName);
+//   const data = await User.find();
+//   console.log(data)
+//   res.send(data);
+// });
+
 
 routesForApp(app);
 
