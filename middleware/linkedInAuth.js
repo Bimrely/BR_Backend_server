@@ -15,7 +15,7 @@ import {User} from '../Models/userModel.js';
     {
       clientID: '78s3dg5r42x8ul' ,
       clientSecret:'1ipi2vqDIqVsvkv1',
-      callbackURL: 'http://localhost:7000/auth/linkedin/callback',
+      callbackURL: 'https://br-backend-server.vercel.app/auth/linkedin/callback',
       scope: ['r_emailaddress', 'r_liteprofile'],
       state: true,
       accessToken:"AQWYwEtFa-3GfSpque1KKQOib7tlTevdvkhqLV3_50COr2GUMZT2T_418FxOQ2q_6Pb1axqvZo1lDmhv9bZTkAdK-gSnkWV96RzyWzV5RCM4-SkFxWq4VY9SXKTaHna9Mhp_7A-4Feoovm58-FLgblNsaoubjVTCby0d5ooPUyYe8Iwi0rVhTJYWdQxRhsdZ9mr3i5ETpW0z_PHRjhfNnhgDP0yNln1ZS9TaxoLKRDnZcaqaCrxch2XJNryEN1GD2AyJoAiQYc2xSmYq-gEyXoCw7PgbNcjLZD3rkqRHjKZhhHVXLCW_3COt9KBwSWA6ZRJ85dk5Cyc3QXjmKuRopl7f-oiGfw"
