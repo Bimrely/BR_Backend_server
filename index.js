@@ -10,6 +10,8 @@ import passport from './middleware/linkedInAuth.js';
 import { User } from './Models/userModel.js';
 import session from 'express-session';
 import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
+const SECRET_KEY = "SECRET";
 const app = express();
 
 // function isLoggedIn(req,res,next){
@@ -57,7 +59,7 @@ app.get(
   async (req, res) => {
     try {
       const user = req.user; // Fetched user from passport strategy
-      const token = jwt.sign({ id: user._id, email: user.email }, process.env.SECRET_KEY, {
+      const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
         expiresIn: '1h',
       });
 
