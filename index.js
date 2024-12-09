@@ -10,7 +10,7 @@ import passport from './middleware/linkedInAuth.js';
 import { User } from './Models/userModel.js';
 import session from 'express-session';
 import jwt from "jsonwebtoken"
-import jwt from "jsonwebtoken";
+
 const SECRET_KEY = "SECRET";
 const app = express();
 
