@@ -51,9 +51,9 @@ app.get('/', (req, res) => {
 
 
 // Login route for linkedin //
-// app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
+app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
 // Check if this route works as expected
-app.get('/api/login', passport.authenticate('linkedin', { scope: ['r_liteprofile', 'r_emailaddress'] }));
+// app.get('/api/login', passport.authenticate('linkedin', { scope: ['r_liteprofile', 'r_emailaddress'] }));
 
 app.get(
   '/auth/linkedin/callback',
