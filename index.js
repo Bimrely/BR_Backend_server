@@ -51,28 +51,53 @@ app.get('/', (req, res) => {
 
 
 // Login route for linkedin //
-app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
+// app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
+// Check if this route works as expected
+app.get('/api/login', passport.authenticate('linkedin', { scope: ['r_liteprofile', 'r_emailaddress'] }));
 
 app.get(
   '/auth/linkedin/callback',
-  passport.authenticate('linkedin', { failureRedirect: '/login' }),
+  passport.authenticate('linkedin', { failureRedirect: 'https://bimrelyfrontend.vercel.app/login' }), // Redirect to frontend login page
   async (req, res) => {
     try {
-      const user = req.user; // Fetched user from passport strategy
+      const user = req.user; // User authenticated via LinkedIn
       const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
         expiresIn: '1h',
       });
 
-      // Redirect to frontend with token and user details in query params
+      // Redirect to your frontend with token and user info
       res.redirect(
         `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
       );
     } catch (error) {
       console.error('LinkedIn callback error:', error);
-      res.redirect('/login');
+      // Fallback redirect to login on the frontend
+      res.redirect('https://bimrelyfrontend.vercel.app/login');
     }
   }
 );
+
+
+// app.get(
+//   '/auth/linkedin/callback',
+//   passport.authenticate('linkedin', { failureRedirect: '/login' }),
+//   async (req, res) => {
+//     try {
+//       const user = req.user; // Fetched user from passport strategy
+//       const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
+//         expiresIn: '1h',
+//       });
+
+//       // Redirect to frontend with token and user details in query params
+//       res.redirect(
+//         `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
+//       );
+//     } catch (error) {
+//       console.error('LinkedIn callback error:', error);
+//       res.redirect('/login');
+//     }
+//   }
+// );
 
 
 
