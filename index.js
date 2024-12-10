@@ -42,7 +42,10 @@ app.use(
       saveUninitialized: false,
     })
   );
+  app.use(passport.initialize());
+  app.use(passport.session());
 
+  
 app.get('/', (req, res) => {
   res.send('Welcome to Node Babel');
   console.log("running");
