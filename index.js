@@ -14,11 +14,11 @@ import jwt from "jsonwebtoken"
 const SECRET_KEY = "SECRET";
 const app = express();
 
-function isLoggedIn(req,res,next){
-  console.log('rest')
-  !req.user ? next(): res.sendStatus(401);
-  console.log('rest')
-  }
+// function isLoggedIn(req,res,next){
+//   console.log('rest')
+//   !req.user ? next(): res.sendStatus(401);
+//   console.log('rest')
+//   }
 
 // const server = http.createServer(app);
 // const io = new Server(server, {
@@ -42,10 +42,7 @@ app.use(
       saveUninitialized: false,
     })
   );
-  app.use(passport.initialize());
-  app.use(passport.session());
 
-  
 app.get('/', (req, res) => {
   res.send('Welcome to Node Babel');
   console.log("running");
@@ -75,7 +72,7 @@ app.get(
     } catch (error) {
       console.error('LinkedIn callback error:', error);
       // Fallback redirect to login on the frontend
-      res.redirect('/protected');
+      res.redirect('https://bimrelyfrontend.vercel.app/login');
     }
   }
 );
@@ -126,16 +123,16 @@ app.get(
 
 
 
-app.get('/protected', isLoggedIn,async(req, res) => {
+// app.get('/protected', isLoggedIn,async(req, res) => {
   
   
-  // const {firstName} = req.body;
+//   // const {firstName} = req.body;
 
-  // console.log(firstName);
-  const data = await User.find();
-  console.log(data)
-  res.send(data);
-});
+//   // console.log(firstName);
+//   const data = await User.find();
+//   console.log(data)
+//   res.send(data);
+// });
 
 
 routesForApp(app);
