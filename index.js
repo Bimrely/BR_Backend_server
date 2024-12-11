@@ -14,11 +14,11 @@ import jwt from "jsonwebtoken"
 const SECRET_KEY = "SECRET";
 const app = express();
 
-// function isLoggedIn(req,res,next){
-//   console.log('rest')
-//   !req.user ? next(): res.sendStatus(401);
-//   console.log('rest')
-//   }
+function isLoggedIn(req,res,next){
+  console.log('rest')
+  !req.user ? next(): res.sendStatus(401);
+  console.log('rest')
+  }
 
 // const server = http.createServer(app);
 // const io = new Server(server, {
@@ -55,27 +55,27 @@ app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','prof
 // Check if this route works as expected
 // app.get('/api/login', passport.authenticate('linkedin', { scope: ['r_liteprofile', 'r_emailaddress'] }));
 
-app.get(
-  '/auth/linkedin/callback',
-  passport.authenticate('linkedin', { failureRedirect: 'https://bimrelyfrontend.vercel.app/login' }), // Redirect to frontend login page
-  async (req, res) => {
-    try {
-      const user = req.user; // User authenticated via LinkedIn
-      const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
-        expiresIn: '1h',
-      });
+// app.get(
+//   '/auth/linkedin/callback',
+//   passport.authenticate('linkedin', { failureRedirect: 'https://bimrelyfrontend.vercel.app/login' }), // Redirect to frontend login page
+//   async (req, res) => {
+//     try {
+//       const user = req.user; // User authenticated via LinkedIn
+//       const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
+//         expiresIn: '1h',
+//       });
 
-      // Redirect to your frontend with token and user info
-      res.redirect(
-        `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
-      );
-    } catch (error) {
-      console.error('LinkedIn callback error:', error);
-      // Fallback redirect to login on the frontend
-      res.redirect('https://bimrelyfrontend.vercel.app/login');
-    }
-  }
-);
+//       // Redirect to your frontend with token and user info
+//       res.redirect(
+//         `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
+//       );
+//     } catch (error) {
+//       console.error('LinkedIn callback error:', error);
+//       // Fallback redirect to login on the frontend
+//       res.redirect('https://bimrelyfrontend.vercel.app/login');
+//     }
+//   }
+// );
 
 
 // app.get(
@@ -106,33 +106,33 @@ app.get(
 
 
 
-// app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
+app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
 
-// app.get(
-//   '/auth/linkedin/callback',
-//   passport.authenticate('linkedin', { 
-//     successRedirect:'/protected',
-//     failureRedirect: '/api/login/error' 
+app.get(
+  '/auth/linkedin/callback',
+  passport.authenticate('linkedin', { 
+    successRedirect:'/protected',
+    failureRedirect: '/api/login/error' 
         
-//   }),
-//   (req, res) => {
-//     // Successful authentication, redirect or respond with a success message
-//     res.send('Authentication successful!');
-//   }
-// );
+  }),
+  (req, res) => {
+    // Successful authentication, redirect or respond with a success message
+    res.send('Authentication successful!');
+  }
+);
 
 
 
-// app.get('/protected', isLoggedIn,async(req, res) => {
+app.get('/protected', isLoggedIn,async(req, res) => {
   
   
-//   // const {firstName} = req.body;
+  // const {firstName} = req.body;
 
-//   // console.log(firstName);
-//   const data = await User.find();
-//   console.log(data)
-//   res.send(data);
-// });
+  // console.log(firstName);
+  const data = await User.find();
+  console.log(data)
+  res.send(data);
+});
 
 
 routesForApp(app);
