@@ -17,7 +17,7 @@ const app = express();
 function isLoggedIn(req,res,next){
   console.log('rest')
   !req.user ? next(): res.sendStatus(401);
-  console.log('rest')
+  
   }
 
 // const server = http.createServer(app);
@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
 
 
 // Login route for linkedin //
-app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
+// app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
 // Check if this route works as expected
 // app.get('/api/login', passport.authenticate('linkedin', { scope: ['r_liteprofile', 'r_emailaddress'] }));
 
