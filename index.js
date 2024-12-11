@@ -112,7 +112,7 @@ app.get(
   '/auth/linkedin/callback',
   passport.authenticate('linkedin', { 
     successRedirect:'/protected',
-    failureRedirect: '/api/login/error' 
+    failureRedirect: 'https://bimrelyfrontend.vercel.app/login' 
         
   }),
   (req, res) => {
