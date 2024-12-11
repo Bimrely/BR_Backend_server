@@ -34,14 +34,16 @@ app.use(cors());
 app.use(express.json());
 
 
+app.use(session({
+  secret: 'keyboard cat',
+  resave: false,
+  saveUninitialized: true,
+}));
 
-app.use(
-    session({
-      secret: 'YOUR_SESSION_SECRET',
-      resave: false,
-      saveUninitialized: false,
-    })
-  );
+
+//initializa passport and use it to manage sessions
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.get('/', (req, res) => {
   res.send('Welcome to Node Babel');
