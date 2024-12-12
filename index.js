@@ -34,12 +34,17 @@ app.use(cors());
 app.use(express.json());
 
 
-app.use(session({
-  secret: 'keyboard cat',
-  resave: false,
-  saveUninitialized: true,
-}));
+app.set("trust proxy", 1);
 
+app.use(session({
+    secret: "secret",
+    saveUninitialized: true,
+    resave: false,
+    maxAge: 1000 * 60 * 15,
+    cookie: {
+        secure: true
+    }
+}));
 
 //initializa passport and use it to manage sessions
 app.use(passport.initialize());
