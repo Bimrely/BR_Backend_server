@@ -108,33 +108,55 @@ app.get('/', (req, res) => {
 
 
 
-app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
+app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile','openid'] }));
 
 app.get(
   '/auth/linkedin/callback',
-  passport.authenticate('linkedin', { 
-    successRedirect:'/protected',
-    failureRedirect: 'https://bimrelyfrontend.vercel.app/login' 
-        
-  }),
-  (req, res) => {
-    // Successful authentication, redirect or respond with a success message
-    res.send('Authentication successful!');
+  passport.authenticate('linkedin', { failureRedirect: '/login' }),
+  async (req, res) => {
+    try {
+      const user = req.user; // The user object from LinkedIn strategy
+      const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
+        expiresIn: '1h',
+      });
+
+      // Redirect to your frontend with token
+      res.redirect(
+        `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
+      );
+    } catch (error) {
+      console.error('LinkedIn callback error:', error);
+      res.status(500).send('Internal Server Error');
+    }
   }
 );
 
 
+// app.get(
+//   '/auth/linkedin/callback',
+//   passport.authenticate('linkedin', { 
+//     successRedirect:'/protected',
+//     failureRedirect: 'https://bimrelyfrontend.vercel.app/login' 
+        
+//   }),
+//   (req, res) => {
+//     // Successful authentication, redirect or respond with a success message
+//     res.send('Authentication successful!');
+//   }
+// );
 
-app.get('/protected', isLoggedIn,async(req, res) => {
+
+
+// app.get('/protected', isLoggedIn,async(req, res) => {
   
   
-  // const {firstName} = req.body;
+//   // const {firstName} = req.body;
 
-  // console.log(firstName);
-  const data = await User.find();
-  console.log(data)
-  res.send(data);
-});
+//   // console.log(firstName);
+//   const data = await User.find();
+//   console.log(data)
+//   res.send(data);
+// });
 
 
 routesForApp(app);
