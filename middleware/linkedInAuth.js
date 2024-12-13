@@ -25,7 +25,7 @@ import {User} from '../Models/userModel.js';
 
    async (accessToken, refreshToken, profile, done) => {
      
-
+console.log(accessToken,profile)
     
 // axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
