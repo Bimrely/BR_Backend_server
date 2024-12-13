@@ -126,7 +126,7 @@ app.get(
       );
     } catch (error) {
       console.error('LinkedIn callback error:', error);
-      res.status(500).send('Internal Server Error');
+      res.status(500).send('Internal Server ');
     }
   }
 );
