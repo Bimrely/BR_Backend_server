@@ -18,7 +18,7 @@ import {User} from '../Models/userModel.js';
       callbackURL: 'https://br-backend-server.vercel.app/auth/linkedin/callback',
          scope: ['openid', 'email', 'profile'],
       state: true,
-      accessToken:"AQRgwcSdHwWNpBv4-YQpp2eX190Yc0AVLm8-QgXY7ivTYITf4O5khUm9DaOb1LwTagkW9P-CKbu19bxZowdnwsSUEAWVOJG9qlsAvhLN7DAO8FMDzqapUU3upaisBIezIbEgK6BJyggraTcANkAlW_nCdh4dGEBUmAvwT5LtwwjnRT0-GIYkQLJOyLb_zpqUNtQhZ_SfeKAJSnBAtWM&state=XGECyaSbE3HI4jFq4ytGm7r3"
+      accessToken:"AQVCYhbSrY1kmDAoJtnsLu0x8ASVLJLk3gOd3UxocOC3e2xX4IlM8s5gmQlbVCKFO77pXGJY69VTlqKUQE-4bT_xocgKgKBO0Z-tu7Ep7_RSyG2qkMWYD_p4VR2CZAGl_U5i5B4luLw3Yge8h042OObNfA7lWI4ahPf81qzqiqeoRbjvkU43KNalX1lPC5UzRoBo80nv3qZP1UQmiTNbzLOt1b_hbrkhseSruTHVyfy2KyKnlAMO1THiuFQLjr-R0qEhf5Hl_knaPUGhPNaBCKscCjx5yE6y3SrY2hQBOLtHSBSN5Pr9kXwkvMmmLqIi_sb8_RwVGwYmQ0Gg2NdIb7zXnv31mw"
     },
 
 
