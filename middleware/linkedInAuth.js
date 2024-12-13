@@ -2,7 +2,7 @@ import passport from 'passport';
 // import  LinkedInStrategy  from 'passport-linkedin-oauth2';
 import { Strategy as LinkedInStrategy } from 'passport-linkedin-oauth2';
 import {User} from '../Models/userModel.js';
-import axios from 'axios';
+// import axios from 'axios';
 
 
  
@@ -27,31 +27,31 @@ import axios from 'axios';
      
 
     
-axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+// axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
-axios.get('https://api.linkedin.com/v2/me',{
-headers:{
-  'Authorization':`Bearer ${accessToken}`,
-  'cache-control':'no-cache',
-  'X-Restli-Protocol-Version':'2.0.0',
+// axios.get('https://api.linkedin.com/v2/me',{
+// headers:{
+//   'Authorization':`Bearer ${accessToken}`,
+//   'cache-control':'no-cache',
+//   'X-Restli-Protocol-Version':'2.0.0',
 
-},
-params:{
- 'projections':'(id,firstName,lastName,email,positions,educations)',
+// },
+// params:{
+//  'projections':'(id,firstName,lastName,email,positions,educations)',
 
-},
+// },
 
 
-}
+// }
 
-)
-  .then(response => {
-    const userProfile = response.data;
-    console.log(userProfile);
-  })
-  .catch(error => {
-    console.error('Error retrieving LinkedIn profile:', error.response.data);
-  });
+// )
+//   .then(response => {
+//     const userProfile = response.data;
+//     console.log(userProfile);
+//   })
+//   .catch(error => {
+//     console.error('Error retrieving LinkedIn profile:', error.response.data);
+//   });
 
 
       
