@@ -133,10 +133,10 @@ app.get('/api/login', passport.authenticate('linkedin', { state:  "f7VXG7Wkw0AEq
 
 
 app.get(
-  '/api/login/auth/linkedin/callback',
+  '/auth/linkedin/callback',
   passport.authenticate('linkedin', { 
     successRedirect:'/protected',
-    failureRedirect: 'https://bimrelyfrontend.vercel.app/login' 
+    failureRedirect: '/protected' 
         
   }),
   (req, res) => {
