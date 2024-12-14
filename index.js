@@ -112,7 +112,7 @@ app.get('/api/login', passport.authenticate('linkedin', { scope:  ['openid','ema
 
 app.get(
   '/auth/linkedin/callback',
-  passport.authenticate('linkedin', { failureRedirect: '/login' }),
+  passport.authenticate('linkedin', { failureRedirect: 'https://bimrelyfrontend.vercel.app/login' }),
   async (req, res) => {
     try {
       const user = req.user; // The user object from LinkedIn strategy
