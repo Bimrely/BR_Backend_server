@@ -108,7 +108,7 @@ app.get('/', (req, res) => {
 
 
 
-app.get('/api/login', passport.authenticate('linkedin', { scope:  ['email','profile'] }));
+app.get('/api/login', passport.authenticate('linkedin', { state:  "f7VXG7Wkw0AEqNSv0sDyZVsG" }));
 
 // app.get(
 //   '/auth/linkedin/callback',
