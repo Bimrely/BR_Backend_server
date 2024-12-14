@@ -16,7 +16,7 @@ import {User} from '../Models/userModel.js';
       clientID: '782061rri2cvea' ,
       clientSecret:'WPL_AP1.x4Sjhfi8HiHMTjAk.RoyQYg==',
       callbackURL: 'https://br-backend-server.vercel.app/auth/linkedin/callback',
-      scope: ['email', 'profile'],
+      scope: ['openid', 'email', 'profile'],
       state: true,
       accessToken:"AQW04J05i-Mt9Vl2DluSM9i7OeVJyl3P31VVUacawiDXetIVGeFPywvO9nyBfz2sP2PKBjNWkVYNrp1_Ft98PVcsoOqLIUO-8rbn4SqDwbjdcFNmoojA2Ym-2Uv2e8iLQifqh8VLbR9BUY0tI0Gi_cf7SfqLJCNwnsZmO-YiXtVstFthABMCGFgBClk9okaKeACaemdw0kvPN0qlwU1_Ar7Qj60y__J5mPT1GysKOK8c7mWS8W3ZrQYNUx5h4Rr2C5HB9nLE-scteYvz2vwvDyB0iEIUOGCmIqplXrrWwpy-A-2lm70310nNncO2E7XZgjUGbgvtB0PClfxsM5ZDOYXkWfi70A"
     },
