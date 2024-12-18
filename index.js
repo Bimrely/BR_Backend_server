@@ -6,10 +6,13 @@ import { connectDB } from './db.js';
 import routesForApp from './Routes.js';
 // import http from 'http';
 // import { Server } from 'socket.io';
-import passport from './middleware/linkedInAuth.js';
+// import passport from './middleware/linkedInAuth.js';
+import passport from './middleware/googleAuth.js';
 import { User } from './Models/userModel.js';
 import session from 'express-session';
 import jwt from "jsonwebtoken"
+import axios from 'axios';
+
 
 const SECRET_KEY = "SECRET";
 const app = express();
@@ -49,6 +52,96 @@ app.get('/', (req, res) => {
   res.send('Welcome to Node Babel');
   console.log("running");
 });
+
+
+
+
+
+
+
+
+// Replace with your LinkedIn credentials
+// const LINKEDIN_CLIENT_ID = process.env.LINKEDIN_CLIENT_ID || '786qjd4hbvjdov';
+// const LINKEDIN_CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET || 'WPL_AP1.yn3cBc7FHReVqXtj.dYTxcA==';
+// const REDIRECT_URI = 'http://localhost:7000/auth/linkedin/callback';
+// const code = 'AQXfLWExRkAJ3bJDsMHZrA6qmJS039cQ08h4d8bYmjnWoTbnDxTqmn5OMg5Jfq2ElZHoa02Qf9I7cJjxS94iOgWZljCFS1jvZ_T9-dyqySHvnZa-oaZDAqJyqrSFBEh2SZ394BMyzVCBTZBiIklTVMm0CSmmGjqpst9Mh2nRQh_WY_6_zHgPecFpE9O0Ij545-xuCaMHNKPwrtuCPpD9E2zF0PPfmdPYx2X3WbrNx3tItshVB3aiBI9qQLZ1h0uD8wkcxuwzEDoXNw22zazQrIyrFHlz-SQac7R5o-OWGw0g75XbN3m61SbEHHjlVkZWpP9POxf9C5rm1HkO9N_OFMp6EIVbjw'
+// // Step 1: Redirect to LinkedIn Authorization URL
+// app.get('/api/login', (req, res) => {
+//   const linkedInAuthUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=${code}&client_id=${LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(
+//     REDIRECT_URI
+//   )}&scope=profie%20email%20openid`;
+//   res.redirect(linkedInAuthUrl);
+// });
+
+// // Step 2: Handle Callback and Exchange Authorization Code for Access Token
+// app.get('/auth/linkedin/callback', async (req, res) => {
+//   const { code } = req.query;
+//   console.log(code)
+
+//   if (!code) {
+//     return res.status(400).json({ error: 'Authorization code not provided.' });
+//   }
+
+//   try {
+//     // Exchange authorization code for access token
+//     const tokenResponse = await axios.post(
+//       'https://www.linkedin.com/oauth/v2/accessToken',
+//       new URLSearchParams({
+//         grant_type: 'authorization_code',
+//         code,
+//         redirect_uri: REDIRECT_URI,
+//         client_id: LINKEDIN_CLIENT_ID,
+//         client_secret: LINKEDIN_CLIENT_SECRET,
+//       }).toString(),
+//       {
+//         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+//       }
+//     );
+
+//     const { access_token, id_token } = tokenResponse.data;
+
+//     // Decode the ID token to verify the user's identity
+//     const decodedToken = jwt.decode(id_token);
+//     const { sub: linkedinId, email, name } = decodedToken;
+
+//     // Fetch additional user data from LinkedIn if needed
+//     const profileResponse = await axios.get('https://api.linkedin.com/v2/me', {
+//       headers: { Authorization: `Bearer ${access_token}` },
+//     });
+
+//     const emailResponse = await axios.get('https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))', {
+//       headers: { Authorization: `Bearer ${access_token}` },
+//     });
+
+//     const userProfile = profileResponse.data;
+//     const userEmail = emailResponse.data.elements[0]['handle~'].emailAddress;
+
+//     // Create or find the user in your database
+//     const user = await User.findOneAndUpdate(
+//       { linkedinId },
+//       { linkedinId, name: userProfile.localizedFirstName, email: userEmail },
+//       { upsert: true, new: true }
+//     );
+
+//     // Generate a JWT for your application
+//     const appToken = jwt.sign({ id: user._id, email: user.email }, process.env.SECRET_KEY, { expiresIn: '1h' });
+
+//     // Redirect to your frontend with the app token
+//     res.redirect(`http://localhost:7000/auth/linkedin/callback?token=${appToken}&user=${user._id}`);
+//   } catch (error) {
+//     console.error('LinkedIn Authentication Error:', error.response?.data || error.message);
+//     res.status(500).json({ error: 'Failed to authenticate with LinkedIn.' });
+//   }
+// });
+
+
+
+
+
+
+
+
+
 
 
 
@@ -105,31 +198,41 @@ app.get('/', (req, res) => {
 
 
 
+// app.get('/api/login',
+//   passport.authenticate('linkedin', { state: 'SOME STATE'  }),
+//   function(req, res){
+//     // The request will be redirected to LinkedIn for authentication, so this
+//     // function will not be called.
+//   });
+
+// app.get('/auth/linkedin/callback', passport.authenticate('linkedin', {
+//   successRedirect: '/protected',
+//   failureRedirect: '/login'
+// }));
 
 
+// app.get('/api/login', passport.authenticate('linkedin', { scope:  ['openid','email','profile'] }));
 
-app.get('/api/login', passport.authenticate('linkedin', { state:  ['openid','email','profile'] }));
+// app.get(
+//   '/auth/linkedin/callback',
+//   passport.authenticate('linkedin', { failureRedirect: 'https://bimrelyfrontend.vercel.app/login' }),
+//   async (req, res) => {
+//     try {
+//       const user = req.user; // The user object from LinkedIn strategy
+//       const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
+//         expiresIn: '1h',
+//       });
 
-app.get(
-  '/auth/linkedin/callback',
-  passport.authenticate('linkedin', { failureRedirect: 'https://bimrelyfrontend.vercel.app/login' }),
-  async (req, res) => {
-    try {
-      const user = req.user; // The user object from LinkedIn strategy
-      const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
-        expiresIn: '1h',
-      });
-
-      // Redirect to your frontend with token
-      res.redirect(
-        `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
-      );
-    } catch (error) {
-      console.error('LinkedIn callback error:', error);
-      res.status(500).send('Internal Server ');
-    }
-  }
-);
+//       // Redirect to your frontend with token
+//       res.redirect(
+//         `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
+//       );
+//     } catch (error) {
+//       console.error('LinkedIn callback error:', error);
+//       res.status(500).send('Internal Server ');
+//     }
+//   }
+// );
 
 
 // app.get(
@@ -147,16 +250,48 @@ app.get(
 
 
 
-// app.get('/protected', isLoggedIn,async(req, res) => {
-  
-  
-//   // const {firstName} = req.body;
 
-//   // console.log(firstName);
-//   const data = await User.find();
-//   console.log(data)
-//   res.send(data);
-// });
+app.get('/api/login', passport.authenticate('google', { scope: ['email','profile'] }));
+
+
+
+app.get(
+  '/auth/google/callback',
+  passport.authenticate('google', { failureRedirect: 'https://bimrelyfrontend.vercel.app/login' }),
+  async (req, res) => {
+    try {
+      const user = req.user; // The user object from LinkedIn strategy
+      const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
+        expiresIn: '1h',
+      });
+
+      // Redirect to your frontend with token
+      res.redirect(
+        `http://localhost:3000/auth/google/callback?token=${token}&user=${user._id}`
+      );
+    } catch (error) {
+      console.error('LinkedIn callback error:', error);
+      res.status(500).send('Internal Server ');
+    }
+  }
+);
+
+
+
+
+
+
+
+app.get('/protected', isLoggedIn,async(req, res) => {
+  
+  
+  // const {firstName} = req.body;
+
+  // console.log(firstName);
+  const data = await User.find();
+  console.log(data)
+  res.send(data);
+});
 
 
 routesForApp(app);

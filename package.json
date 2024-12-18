@@ -33,6 +33,7 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-linkedin": "^1.0.0",
     "passport-linkedin-oauth2": "^2.0.0",
+    "passport-openidconnect": "^0.1.2",
     "pusher": "^5.2.0",
     "resend": "^4.0.1-alpha.0",
     "socket.io": "^4.7.5",

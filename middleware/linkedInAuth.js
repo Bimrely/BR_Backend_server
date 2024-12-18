@@ -2,7 +2,7 @@ import passport from 'passport';
 // import  LinkedInStrategy  from 'passport-linkedin-oauth2';
 import { Strategy as LinkedInStrategy } from 'passport-linkedin-oauth2';
 import {User} from '../Models/userModel.js';
-import axios from 'axios';
+// import axios from 'axios';
 
 
  
@@ -13,45 +13,45 @@ import axios from 'axios';
   passport.use(
   new LinkedInStrategy(
     {
-      clientID: '782061rri2cvea' ,
-      clientSecret:'WPL_AP1.x4Sjhfi8HiHMTjAk.RoyQYg==',
-      callbackURL: 'https://bimrelyfrontend.vercel.app/auth/linkedin/callback',
-      scope: ['openid', 'email', 'profile'],
+      clientID: '786qjd4hbvjdov' ,
+      clientSecret:'WPL_AP1.yn3cBc7FHReVqXtj.dYTxcA==',
+      callbackURL: 'http://localhost:5000/auth/linkedin/callback',
+      scope: ['openid','email', 'profile'],
       state: true,
-      accessToken:"AQXnPOAyc8Qoeg1uXOosaOX3oDp-dzzzZ8m6B_G7IxiYaopB-S5-ZQvZD1I_lNv5rpkqzSOiIZZW0coPduHnzPc-stFoG_u7as36jEmJT3KcjdH2sFp_FxKJVC-F47KmSdZ08wmUKANKjZFJcbp4mekOqjpAaTj7d0hEL5i95lk93qvek6-6IBWUJluRdrEJ5TrLXjPiPWS44YMtFaFFcUfg-pn0t78Fkpowxdaefrm3uq8cv4lqwEbfFTg8EzxsWNv9ncEI-DytZXlsC2FJYjTnOdtzoAb6kaMlXElhLiLteyVunUdFlOaR_4fiDXNa2yyXdcVSDb5_m9tnQ5tVZyxa1AdVAQ"
+      accessToken: 'AQU9x7K1QT4HhWtEil2947-gfzDLni36VEhxbGdHSI-q-bUPZSKM7drbxdFhdXQ7WbR8doQlDnkh7FHLjqahKcOfAab9NblOhKmfYAEJr1WfBUBQFVKwJvr7Dcn_lJEgeDQxWpC2HeR2SAIdS60sLkE3-PdmCB6pXfG9i3wZ9s614nkbDa6n3WS-cH0jFDD0xhqH8P8yw_b_VLoEMiAq8SWnjrkCkDk1PrMcB4xxHsmqg3udw5HS9O5cwOAZa-HIbLBGjzFA3TRen1DRYKEuSQjTtM029NlWBJZWabfmCz5APuO8RQXb5x-ZTNmWkoKEZybkVsu6DM1UFf8fS8njVX-Te9yBUA'
     },
 
 
 
    async (accessToken, refreshToken, profile, done) => {
      
-console.log(accessToken,profile)
+
     
-axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+// axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
-axios.get('https://api.linkedin.com/v2/me',{
-headers:{
-  'Authorization':`Bearer ${accessToken}`,
-  'cache-control':'no-cache',
-  'X-Restli-Protocol-Version':'2.0.0',
+// axios.get('https://api.linkedin.com/v2/me',{
+// headers:{
+//   'Authorization':`Bearer ${accessToken}`,
+//   'cache-control':'no-cache',
+//   'X-Restli-Protocol-Version':'2.0.0',
 
-},
-params:{
- 'projections':'(id,firstName,lastName,email,positions,educations)',
+// },
+// params:{
+//  'projections':'(id,firstName,lastName,email,positions,educations)',
 
-},
+// },
 
 
-}
+// }
 
-)
-  .then(response => {
-    const userProfile = response.data;
-    console.log(userProfile);
-  })
-  .catch(error => {
-    console.error('Error retrieving LinkedIn profile:', error.response.data);
-  });
+// )
+//   .then(response => {
+//     const userProfile = response.data;
+//     console.log(userProfile);
+//   })
+//   .catch(error => {
+//     console.error('Error retrieving LinkedIn profile:', error.response.data);
+//   });
 
 
       

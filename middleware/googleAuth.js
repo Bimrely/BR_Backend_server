@@ -11,7 +11,7 @@ import {User} from '../Models/userModel.js';
     {
       clientID: '458657353939-5kvfbtstgk4ljltrp3uqra2u25bo791k.apps.googleusercontent.com' ,
       clientSecret:'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',
-      callbackURL: 'http://localhost:7000/auth/google/callback',
+      callbackURL: 'http://localhost:5000/auth/google/callback',
     },
     (accessToken, refreshToken, profile, done) => {
       const userData = {

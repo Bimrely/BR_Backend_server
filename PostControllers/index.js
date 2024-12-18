@@ -81,6 +81,7 @@ import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import cloudinary from '../cloudinary/cloudinaryConfig.js';
 
 import { auth } from "../middleware/auth.js";
+import {authenticateApiKey } from "../middleware/apikeyAuth.js";
 import path from "path";
 import { get } from "http";
 
@@ -215,7 +216,7 @@ router.put(
 
 //chatgtp-tubo3.5 route
 
-router.post('/run-prompt', handleRunPrompt);
+router.post('/run-prompt',authenticateApiKey, handleRunPrompt);
 
 
 
