@@ -267,7 +267,7 @@ app.get(
 
       // Redirect to your frontend with token
       res.redirect(
-        `http://localhost:3000/auth/google/callback?token=${token}&user=${user._id}`
+        `https://bimrelyfrontend.vercel.app/auth/google/callback?token=${token}&user=${user._id}`
       );
     } catch (error) {
       console.error('LinkedIn callback error:', error);
