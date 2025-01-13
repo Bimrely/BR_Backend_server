@@ -68,6 +68,7 @@ app.get('/auth/linkedin', (req, res) => {
 });
 
 // Handle the LinkedIn callback and exchange the code for tokens
+
 app.get('/auth/linkedin/callback', async (req, res) => {
   const code = req.query.code;
   const state = req.query.state;
@@ -77,44 +78,99 @@ app.get('/auth/linkedin/callback', async (req, res) => {
     return res.status(400).send('State parameter mismatch.');
   }
 
-  const clientID = '786qjd4hbvjdov';
-  const clientSecret = 'WPL_AP1.yn3cBc7FHReVqXtj.dYTxcA==';
-  const redirectUri = 'https://br-backend-server.vercel.app/auth/linkedin/callback';
-
   const tokenUrl = 'https://www.linkedin.com/oauth/v2/accessToken';
   const tokenParams = new URLSearchParams({
     grant_type: 'authorization_code',
-    code: code,
-    redirect_uri: redirectUri,
-    client_id: clientID,
-    client_secret: clientSecret
+    code,
+    redirect_uri: 'https://br-backend-server.vercel.app/auth/linkedin/callback',
+    client_id: '786qjd4hbvjdov',
+    client_secret: 'WPL_AP1.yn3cBc7FHReVqXtj.dYTxcA==',
   });
 
   try {
     const response = await axios.post(tokenUrl, tokenParams.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
 
     const accessToken = response.data.access_token;
+
+    // Fetch user profile using access token
     const profile = await getLinkedInUserProfile(accessToken);
+
+    // Save user profile in database
+  
     const user = await saveUserProfile(profile, accessToken);
 
-  // Generate JWT Token
+      // Generate JWT Token
   const token = jwt.sign(
     { id: user._id, email: user.email },
     process.env.SECRET_KEY,
     { expiresIn: '1h' }
   );
 
-  // Redirect to frontend with token
-  res.redirect(
-    `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
-  );
+
+    console.log('LinkedIn Authentication Successful');
+    res.redirect(
+      `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
+    );
   } catch (error) {
-    console.error('Error during authentication:', error);
+    console.error('Error during authentication:', error.response?.data || error);
     res.status(500).send('Error during authentication');
   }
 });
+
+
+
+
+
+
+// app.get('/auth/linkedin/callback', async (req, res) => {
+//   const code = req.query.code;
+//   const state = req.query.state;
+
+//   // Validate state
+//   if (!state || state !== req.session.state) {
+//     return res.status(400).send('State parameter mismatch.');
+//   }
+
+//   const clientID = '786qjd4hbvjdov';
+//   const clientSecret = 'WPL_AP1.yn3cBc7FHReVqXtj.dYTxcA==';
+//   const redirectUri = 'https://br-backend-server.vercel.app/auth/linkedin/callback';
+
+//   const tokenUrl = 'https://www.linkedin.com/oauth/v2/accessToken';
+//   const tokenParams = new URLSearchParams({
+//     grant_type: 'authorization_code',
+//     code: code,
+//     redirect_uri: redirectUri,
+//     client_id: clientID,
+//     client_secret: clientSecret
+//   });
+
+//   try {
+//     const response = await axios.post(tokenUrl, tokenParams.toString(), {
+//       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+//     });
+
+//     const accessToken = response.data.access_token;
+//     const profile = await getLinkedInUserProfile(accessToken);
+//     const user = await saveUserProfile(profile, accessToken);
+
+//   // Generate JWT Token
+//   const token = jwt.sign(
+//     { id: user._id, email: user.email },
+//     process.env.SECRET_KEY,
+//     { expiresIn: '1h' }
+//   );
+
+//   // Redirect to frontend with token
+//   res.redirect(
+//     `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
+//   );
+//   } catch (error) {
+//     console.error('Error during authentication:', error);
+//     res.status(500).send('Error during authentication');
+//   }
+// });
 
 // Fetch the user's LinkedIn profile
 async function getLinkedInUserProfile(accessToken) {
