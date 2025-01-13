@@ -92,7 +92,7 @@ app.get('/auth/linkedin/callback', async (req, res) => {
 
   try {
     const response = await axios.post(tokenUrl, tokenParams.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      headers: { 'Content-Type': 'application/json' }
     });
 
     const accessToken = response.data.access_token;
