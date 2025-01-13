@@ -56,7 +56,7 @@ app.get('/', (req, res) => {
 
 
 app.get('/auth/linkedin', (req, res) => {
-  const clientID = '786qjd4hbvjdov';
+  const clientID = '78qshjn1nikmuh';
   const redirectUri = 'https://br-backend-server.vercel.app/auth/linkedin/callback';
   const scope = 'openid email profile'; // OpenID and basic profile scopes
   const state = Math.random().toString(36).substring(7); // CSRF protection
@@ -77,8 +77,8 @@ app.get('/auth/linkedin/callback', async (req, res) => {
     return res.status(400).send('State parameter mismatch.');
   }
 
-  const clientID = '786qjd4hbvjdov';
-  const clientSecret = 'WPL_AP1.yn3cBc7FHReVqXtj.dYTxcA==';
+  const clientID = '78qshjn1nikmuh';
+  const clientSecret = 'WPL_AP1.gAjYts2NQxomv5ev.Nle8Vw==';
   const redirectUri = 'https://br-backend-server.vercel.app/auth/linkedin/callback';
 
   const tokenUrl = 'https://www.linkedin.com/oauth/v2/accessToken';
@@ -92,7 +92,7 @@ app.get('/auth/linkedin/callback', async (req, res) => {
 
   try {
     const response = await axios.post(tokenUrl, tokenParams.toString(), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
     const accessToken = response.data.access_token;
