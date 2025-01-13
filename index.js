@@ -9,6 +9,7 @@ import routesForApp from './Routes.js';
 // import passport from './middleware/linkedInAuth.js';
 import passport from './middleware/googleAuth.js';
 import { User } from './Models/userModel.js';
+import { Profile } from './Models/userprofile.js';
 import session from 'express-session';
 import jwt from "jsonwebtoken"
 import axios from 'axios';
@@ -54,7 +55,166 @@ app.get('/', (req, res) => {
 });
 
 
+app.get('/auth/linkedin', (req, res) => {
+  const clientID = '786qjd4hbvjdov';
+  const redirectUri = 'https://br-backend-server.vercel.app/auth/linkedin/callback';
+  const scope = 'openid email profile'; // OpenID and basic profile scopes
+  const state = Math.random().toString(36).substring(7); // CSRF protection
 
+  req.session.state = state;  // Store the state in session
+  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientID}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
+  
+  res.redirect(authUrl);
+});
+
+// Handle the LinkedIn callback and exchange the code for tokens
+app.get('/auth/linkedin/callback', async (req, res) => {
+  const code = req.query.code;
+  const state = req.query.state;
+
+  // Validate state
+  if (!state || state !== req.session.state) {
+    return res.status(400).send('State parameter mismatch.');
+  }
+
+  const clientID = '786qjd4hbvjdov';
+  const clientSecret = 'WPL_AP1.yn3cBc7FHReVqXtj.dYTxcA==';
+  const redirectUri = 'https://br-backend-server.vercel.app/auth/linkedin/callback';
+
+  const tokenUrl = 'https://www.linkedin.com/oauth/v2/accessToken';
+  const tokenParams = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code: code,
+    redirect_uri: redirectUri,
+    client_id: clientID,
+    client_secret: clientSecret
+  });
+
+  try {
+    const response = await axios.post(tokenUrl, tokenParams.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    const accessToken = response.data.access_token;
+    const profile = await getLinkedInUserProfile(accessToken);
+    const user = await saveUserProfile(profile, accessToken);
+
+  // Generate JWT Token
+  const token = jwt.sign(
+    { id: user._id, email: user.email },
+    process.env.SECRET_KEY,
+    { expiresIn: '1h' }
+  );
+
+  // Redirect to frontend with token
+  res.redirect(
+    `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
+  );
+  } catch (error) {
+    console.error('Error during authentication:', error);
+    res.status(500).send('Error during authentication');
+  }
+});
+
+// Fetch the user's LinkedIn profile
+async function getLinkedInUserProfile(accessToken) {
+  const profileUrl = 'https://api.linkedin.com/v2/userinfo';
+  try {
+    const response = await axios.get(profileUrl, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching LinkedIn profile:', error);
+    throw error;
+  }
+}
+
+async function saveUserProfile(profile, accessToken) {
+  console.log("Profile data:", profile);
+
+  const userData = {
+    linkedinId: profile.sub, // Use 'sub' instead of 'id'
+    displayName: profile.name,
+    email: profile.email,
+    firstName: profile.given_name,
+    lastName: profile.family_name,
+    accessToken,
+  };
+
+  try {
+    // Check if the user already exists in the database
+    let user = await User.findOne({ linkedinId: profile.sub }); // Query using 'sub'
+
+    if (user) {
+      // If user exists, update their profile information
+      user.firstName = userData.firstName;
+      user.lastName = userData.lastName;
+      user.displayName = userData.displayName;
+      user.email = userData.email;
+      user.accessToken = userData.accessToken;
+
+      const updatedUser = await user.save();
+      console.log("User updated:", updatedUser);
+
+      // Update the associated profile if it exists
+      await Profile.findOneAndUpdate(
+        { userId: updatedUser._id },
+        {
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+        },
+        { new: true, upsert: true } // Create if it doesn't exist
+      );
+
+      console.log("Profile updated for user:", updatedUser._id);
+      return updatedUser;
+    } else {
+      // If user doesn't exist, create a new user
+      const newUser = new User(userData);
+      const savedUser = await newUser.save();
+      console.log("New user saved:", savedUser);
+
+      // Create an associated profile for the new user
+      const profileData = {
+        userId: savedUser._id,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+      };
+
+      const newProfile = await new Profile(profileData).save();
+      console.log("Profile created for new user:", savedUser._id);
+
+      return savedUser;
+    }
+  } catch (error) {
+    console.error("Error saving user profile:", error);
+    throw error;
+  }
+}
+
+// async function saveUserProfile(profile, accessToken) {
+//   try {
+//     let user = await User.findOne({ linkedinId: profile.id });
+
+//     if (!user) {
+//       user = new User({
+//         linkedinId: profile.id,
+//         firstName: profile.given_name,
+//         lastName: profile.family_name,
+//         email: profile.email,  // Assuming email is in the profile
+//         accessToken
+//       });
+//       console.log(firstName)
+//       await user.save();
+//     }
+
+//     return user;
+//   } catch (error) {
+//     console.error('Error saving user profile:', error);
+//     throw error;
+//   }
+// }
 
 
 
@@ -211,7 +371,7 @@ app.get('/', (req, res) => {
 // }));
 
 
-// app.get('/api/login', passport.authenticate('linkedin', { scope:  ['openid','email','profile'] }));
+// app.get('/api/linkedin/login', passport.authenticate('linkedin', { state: true }));
 
 // app.get(
 //   '/auth/linkedin/callback',

@@ -14,6 +14,8 @@ passport.use(
       callbackURL: 'https://br-backend-server.vercel.app/auth/google/callback',
     },
     async (accessToken, refreshToken, profile, done) => {
+
+      console.log(profile)
       const userData = {
         googleId: profile.id,
         displayName: profile.displayName,
