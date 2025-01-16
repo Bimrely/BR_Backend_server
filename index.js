@@ -99,8 +99,8 @@ app.get('/auth/linkedin/callback', async (req, res) => {
 
     const accessToken = response.data.access_token;
     const profile = await getLinkedInUserProfile(accessToken);
-       await saveUserProfile(profile, accessToken);
-    const user = req.user; 
+    const user = await saveUserProfile(profile, accessToken);
+
   // Generate JWT Token
   const token = jwt.sign(
     { id: user._id, email: user.email },
