@@ -59,10 +59,10 @@ app.get('/auth/linkedin', (req, res) => {
   const clientID = '786qjd4hbvjdov';
   const redirectUri = 'https://br-backend-server.vercel.app/auth/linkedin/callback';
   const scope = 'openid email profile'; // OpenID and basic profile scopes
-  const state = Math.random().toString(36).substring(7); // CSRF protection
+  // const state = Math.random().toString(36).substring(7); // CSRF protection
 
-  req.session.state = state;  // Store the state in session
-  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientID}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
+  // req.session.state = state;  // Store the state in session
+  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientID}&redirect_uri=${redirectUri}&scope=${scope}`;
   
   res.redirect(authUrl);
 });
@@ -72,10 +72,12 @@ app.get('/auth/linkedin/callback', async (req, res) => {
   const code = req.query.code;
   const state = req.query.state;
 
+  console.log(code,"code")
+  console.log(state,"state")
   // Validate state
-  if (!state || state !== req.session.state) {
-    return res.status(400).send('State parameter mismatch.');
-  }
+  // if (!state || state !== req.session.state) {
+  //   return res.status(400).send('State parameter mismatch.');
+  // }
 
   const clientID = '786qjd4hbvjdov';
   const clientSecret = 'WPL_AP1.yn3cBc7FHReVqXtj.dYTxcA==';
