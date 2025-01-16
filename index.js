@@ -99,15 +99,12 @@ app.get('/auth/linkedin/callback', async (req, res) => {
 
     const accessToken = response.data.access_token;
     const profile = await getLinkedInUserProfile(accessToken);
-    let user = await saveUserProfile(profile, accessToken);
-     user = req.user; 
-  // Generate JWT Token
-  const token = jwt.sign(
-    { id: user._id, email: user.email },
-    process.env.SECRET_KEY,
-    { expiresIn: '1h' }
-  );
+    const user = await saveUserProfile(profile, accessToken);
 
+  // Generate JWT Token
+  const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, {
+    expiresIn: '1h',
+  });
   // Redirect to frontend with token
   res.redirect(
     `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
