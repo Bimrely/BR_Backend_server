@@ -110,7 +110,7 @@ app.get('/auth/linkedin/callback', async (req, res) => {
 
   // Redirect to frontend with token
   res.redirect(
-    `https://bimrelyfrontend.vercel.app`
+    `https://bimrelyfrontend.vercel.app/auth/linkedin/callback?token=${token}&user=${user._id}`
   );
   } catch (error) {
     console.error('Error during authentication:', error);
