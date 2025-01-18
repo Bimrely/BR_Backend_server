@@ -4562,6 +4562,7 @@ export const getAllapi = async(req,res)=>{
 
     // Fetch paginated data
     const jobapi = await JobApi.find()
+    .sort({ job_posted_at_datetime_utc: -1 }) 
       .skip(skip)
       .limit(Number(limit));
 
