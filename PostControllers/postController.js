@@ -8,17 +8,40 @@ import {Comment} from "../Models/comment.js"
 import { Libary } from "../Models/libary.js";
 import { User } from "../Models/userModel.js";
 import { Profile } from "../Models/userprofile.js";
-// import {io} from "../index.js"
+// import io from "../index.js"
 import Notification from "../Models/notification.js"
 import { JobApi } from "../Models/apiJobs.js";
+import { v2 as cloudinary } from 'cloudinary';
 // import {Reply} from "../Models/reply.js"
-
+// import  pusher  from '../index.js';
+import Pusher from 'pusher';
 // import {emitLikeNotification,emitCommentNotification} from "../Socket/socket.js"
 import axios from "axios";
 
 // import { Configuration, OpenAIApi } from 'openai';
 // import { Configuration, OpenAIApi } from "openai"
 import  { OpenAIApi,Configuration } from 'openai';
+
+
+
+
+
+
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID,  // Pusher App ID
+  key: process.env.PUSHER_KEY,       // Pusher Key
+  secret: process.env.PUSHER_SECRET, // Pusher Secret
+  cluster: process.env.PUSHER_CLUSTER, // Pusher Cluster
+  useTLS: true                      // Enable TLS (required for secure connections)
+});
+
+
+
+
+
+
+
+
 
 // OpenAI Configuration
 const config = new Configuration({
@@ -127,8 +150,19 @@ export const likeArticle = async (req, res) => {
 
   await notification.save();
 
+
+
+  // Send a real-time notification using Pusher
+  pusher.trigger('article-channel', 'like-article', {
+    articleId,
+    userId,
+    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss article.`,
+  });
+
+
+
   // Emit socket event to the article owner
-  io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
+  // io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
 }
 
     // Check if the user has already liked the article
@@ -218,8 +252,15 @@ if (comment.userId.toString() !== userId) {
 
   await notification.save();
 
+  pusher.trigger('article-channel', 'like-comment', {
+    articleId,
+    commentId,
+    userId,
+  
+  });
+
   // Emit socket event to the article owner
-  io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
+  // io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
 }
 
 
@@ -309,8 +350,15 @@ if (comment.userId.toString() !== userId) {
 
   await notification.save();
 
+
+  pusher.trigger('job-channel', 'like-comment-job', {
+    jobId,
+    userId,
+  
+  });
+
   // Emit socket event to the article owner
-  io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
+  // io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
 }
 
 
@@ -351,72 +399,183 @@ if (comment.userId.toString() !== userId) {
 
 
 
-
-
-// Comment on an job
 export const commentJob = async (req, res) => {
   try {
     const { jobId } = req.params;
-    // const {userId} = req.params;
-    console.log(jobId);
-    // console.log(userId); 
+    const { text } = req.body;
+    const userId = req.userId; // Get the logged-in user's ID
 
-    const { text} = req.body;
-    const userId = req.userId; 
+    // Fetch the profile of the commenter
+    const profile = await Profile.findOne({ userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
 
+    // Detect mentions in the comment text (pattern `@[displayName](userId)`)
+    const mentionPattern = /@\[(.*?)\]\((.*?)\)/g;
+    const mentionedIds = [];
+    let match;
 
-  const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
+    // Extract and log each mention ID from text
+    while ((match = mentionPattern.exec(text)) !== null) {
+      const mentionedUserId = match[2]; // Extract userId directly
+      mentionedIds.push(mentionedUserId);
+    }
 
+    // Fetch profiles for all mentioned IDs to validate and store
+    const mentionedProfiles = await Profile.find({ _id: { $in: mentionedIds } });
+    
+    if (!mentionedProfiles.length) {
+      console.log("No valid profiles found for mentions");
+    }
 
-    // Create a new comment
-    const comment = new Comment({ userId:req.userId, job: jobId, text });
-    await comment.save();
-  
-    const job = await Job.findByIdAndUpdate(jobId, {
-      
-        $push: { comments:{
-            _id: comment._id, 
-            text: comment.text,
-           userId:comment.userId,
-           userId: user._id,
-           firstName: user.firstName,
-           lastName: user.lastName,
-          //  file:comment.file
-        } 
-                 
-             },
-          
+    // Create and save the comment with the author and mention references
+    const comment = new Comment({
+      commentAuthor: profile._id,
+      job: jobId,
+      userId: userId,
+      text: text,
+      mentions: mentionedIds,  // Store the mentioned profiles directly
     });
 
- // Create a new notification
- if (job.userId.toString() !== userId) {
-  // Create notification only if the job is not liked by its owner
-  const notification = new Notification({
-    user: job.userId,
-    type: 'comment',
-    job: job._id,
-    message: `${user.firstName} ${user.lastName} comment on your job.`,
-  });
+    await comment.save();
 
-  await notification.save();
+    // Add the comment to the article's comments array
+    const job = await Job.findByIdAndUpdate(
+      jobId,
+      { $push: { comments: comment } }, // Push the comment into the comments array
+      { new: true } // Return the updated article
+    )
+      .populate({
+        path: 'comments.commentAuthor',
+        select: 'firstName lastName profilePicture userId',
+      })
+      .populate({
+        path: 'comments.mentions',
+        select: 'firstName lastName profilePicture',
+      });
 
-  // Emit socket event to the job owner
-  io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
-}
+    // Flag to track if the article owner was mentioned
+    let articleOwnerMentioned = false;
 
-await job.save();
-    res.status(200).json({ message: 'Comment added successfully.',job});
+    // Send notifications to mentioned users
+    for (const mentionedProfile of mentionedProfiles) {
+      if (mentionedProfile.userId.toString() === job.userId.toString()) {
+        articleOwnerMentioned = true; // Mark that the article owner was mentioned
+      }
+
+      const mentionNotification = new Notification({
+        user: mentionedProfile.userId,  // The mentioned user's ID from Profile
+        type: 'mention',
+        job: job._id,
+        message: `${profile.firstName} mentioned you in a comment.`,
+      });
+      
+      await mentionNotification.save();
+
+      // Use Pusher to notify the mentioned user
+      pusher.trigger('job-channel', 'new-mention', {
+        mentionedUserId: mentionedProfile.userId,
+        jobId,
+        message: `You were mentioned in a comment by ${profile.firstName}.`,
+      });
+    }
+
+    // If the article owner wasn't mentioned, send a separate comment notification
+    if (!articleOwnerMentioned && job.userId.toString() !== userId) {
+      const articleOwnerNotification = new Notification({
+        user: job.userId,  // The article owner
+        type: 'comment',
+        job: job._id,
+        message: `${profile.firstName} commented on your job.`,
+      });
+      await articleOwnerNotification.save();
+
+      // Notify the article owner
+      pusher.trigger('job-channel', 'new-comment', {
+        jobId,
+        userId,
+        message: `User ${profile.firstName} commented on your job.`,
+      });
+    }
+
+    res.status(200).json({ message: 'Comment added successfully.', job });
   } catch (error) {
     console.error('Error commenting on article:', error);
     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
   }
 };
 
+// Comment on an job
+// export const commentJob = async (req, res) => {
+//   try {
+//     const { jobId } = req.params;
+//     // const {userId} = req.params;
+//     console.log(jobId);
+  
 
-// Delete a comment
+//     const { text} = req.body;
+//     const userId = req.userId; 
+
+
+//   const user = await User.findById(userId);
+//   if (!user) {
+//     return res.status(404).json({ message: 'User not found' });
+//   }
+
+
+//     // Create a new comment
+//     const comment = new Comment({ userId:req.userId, job: jobId, text });
+//     await comment.save();
+  
+//     const job = await Job.findByIdAndUpdate(jobId, {
+      
+//         $push: { comments:{
+//             _id: comment._id, 
+//             text: comment.text,
+//            userId:comment.userId,
+//            userId: user._id,
+//            firstName: user.firstName,
+//            lastName: user.lastName,
+//           //  file:comment.file
+//         } 
+                 
+//              },
+          
+//     });
+
+//  // Create a new notification
+//  if (job.userId.toString() !== userId) {
+//   // Create notification only if the job is not liked by its owner
+//   const notification = new Notification({
+//     user: job.userId,
+//     type: 'comment',
+//     job: job._id,
+//     message: `${user.firstName} ${user.lastName} comment on your job.`,
+//   });
+
+//   await notification.save();
+
+  
+//   pusher.trigger('job-channel', 'new-comment-job', {
+//     jobId,
+//     userId,
+  
+//   });
+//   // Emit socket event to the job owner
+//   // io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
+// }
+
+// await job.save();
+//     res.status(200).json({ message: 'Comment added successfully.',job});
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+//   }
+// };
+
+
+// // Delete a comment
 export const deleteCommentJob = async (req, res) => {
   try {
     const { jobId, commentId } = req.params;
@@ -667,103 +826,482 @@ export const deleteReply = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
-
-
-// Comment on an article
 export const commentArticle = async (req, res) => {
   try {
     const { articleId } = req.params;
-    // const {userId} = req.params;
-    console.log(articleId);
-    // console.log(userId); 
+    const { text } = req.body;
+    const userId = req.userId; // Get the logged-in user's ID
 
-    const { text} = req.body;
-    const userId = req.userId; 
-    // const file  = req.file;
-  
+    // Fetch the profile of the commenter
+    const profile = await Profile.findOne({ userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    // Detect mentions in the comment text (pattern `@[displayName](userId)`)
+    const mentionPattern = /@\[(.*?)\]\((.*?)\)/g;
+    const mentionedIds = [];
+    let match;
+
+    // Extract and log each mention ID from text
+    while ((match = mentionPattern.exec(text)) !== null) {
+      const mentionedUserId = match[2]; // Extract userId directly
+      mentionedIds.push(mentionedUserId);
+    }
+
+    // Fetch profiles for all mentioned IDs to validate and store
+    const mentionedProfiles = await Profile.find({ _id: { $in: mentionedIds } });
     
-    // if (!file || !file.originalname) {
-    //   return res.status(400).json({ message: 'Invalid file data' });
-    // }
-  
-  
-  //   const att = {
-  //     name: file.originalname,
-  //     fileInfo:{
-  //       size: file.size,
-  //       mimetype: file.mimetype,
-  //       location: file.location,
-  //     },
-  //     fileBucket: file.bucket,
-  //     fileKey: file.key,
-  //     location: file.location,
-  //     contentType: file.mimetype,
-  // };
+    if (!mentionedProfiles.length) {
+      console.log("No valid profiles found for mentions");
+    }
 
-  // const commentfile = new Comment({
-  // file:att,
-  // text,
-  //   userId: req.userId,
-  // });
-   
-
-
-  const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
-
-
-    // Create a new comment
-    const comment = new Comment({ userId:req.userId, article: articleId, text });
-    await comment.save();
-  
-    const article = await Article.findByIdAndUpdate(articleId, {
-      
-        $push: { comments:{
-            _id: comment._id, 
-            text: comment.text,
-           userId:comment.userId,
-           userId: user._id,
-           firstName: user.firstName,
-           lastName: user.lastName,
-          //  file:comment.file
-        } 
-                 
-             },
-          
+    // Create and save the comment with the author and mention references
+    const comment = new Comment({
+      commentAuthor: profile._id,
+      article: articleId,
+      userId: userId,
+      text: text,
+      mentions: mentionedIds,  // Store the mentioned profiles directly
     });
 
- // Create a new notification
- if (article.userId.toString() !== userId) {
-  // Create notification only if the article is not liked by its owner
-  const notification = new Notification({
-    user: article.userId,
-    type: 'comment',
-    article: article._id,
-    message: `${user.firstName} ${user.lastName} comment on your article.`,
-  });
+    await comment.save();
 
-  await notification.save();
+    // Add the comment to the article's comments array
+    const article = await Article.findByIdAndUpdate(
+      articleId,
+      { $push: { comments: comment } }, // Push the comment into the comments array
+      { new: true } // Return the updated article
+    )
+      .populate({
+        path: 'comments.commentAuthor',
+        select: 'firstName lastName profilePicture userId',
+      })
+      .populate({
+        path: 'comments.mentions',
+        select: 'firstName lastName profilePicture',
+      });
 
-  // Emit socket event to the article owner
-  io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
-}
+    // Flag to track if the article owner was mentioned
+    let articleOwnerMentioned = false;
 
-await article.save();
-    res.status(200).json({ message: 'Comment added successfully.',article});
+    // Send notifications to mentioned users
+    for (const mentionedProfile of mentionedProfiles) {
+      if (mentionedProfile.userId.toString() === article.userId.toString()) {
+        articleOwnerMentioned = true; // Mark that the article owner was mentioned
+      }
+
+      const mentionNotification = new Notification({
+        user: mentionedProfile.userId,  // The mentioned user's ID from Profile
+        type: 'mention',
+        article: article._id,
+        message: `${profile.firstName} mentioned you in a comment.`,
+      });
+      
+      await mentionNotification.save();
+
+      // Use Pusher to notify the mentioned user
+      pusher.trigger('article-channel', 'new-mention', {
+        mentionedUserId: mentionedProfile.userId,
+        articleId,
+        message: `You were mentioned in a comment by ${profile.firstName}.`,
+      });
+    }
+
+    // If the article owner wasn't mentioned, send a separate comment notification
+    if (!articleOwnerMentioned && article.userId.toString() !== userId) {
+      const articleOwnerNotification = new Notification({
+        user: article.userId,  // The article owner
+        type: 'comment',
+        article: article._id,
+        message: `${profile.firstName} commented on your article.`,
+      });
+      await articleOwnerNotification.save();
+
+      // Notify the article owner
+      pusher.trigger('article-channel', 'new-comment', {
+        articleId,
+        userId,
+        message: `User ${profile.firstName} commented on your article.`,
+      });
+    }
+
+    res.status(200).json({ message: 'Comment added successfully.', article });
   } catch (error) {
     console.error('Error commenting on article:', error);
     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
   }
 };
+
+// export const commentArticle = async (req, res) => {
+//   try {
+//     const { articleId } = req.params;
+//     const { text } = req.body;
+//     const userId = req.userId; // Get the logged-in user's ID
+
+//     // Fetch the profile of the commenter
+//     const profile = await Profile.findOne({ userId });
+//     if (!profile) {
+//       return res.status(404).json({ message: 'Profile not found' });
+//     }
+
+//     // Detect mentions in the comment text (pattern `@[displayName](userId)`)
+//     const mentionPattern = /@\[(.*?)\]\((.*?)\)/g;
+//     const mentionedIds = [];
+//     let match;
+
+//     // Extract and log each mention ID from text
+//     while ((match = mentionPattern.exec(text)) !== null) {
+//       const mentionedUserId = match[2]; // Extract userId directly
+//       mentionedIds.push(mentionedUserId);
+//     }
+
+//     // Fetch profiles for all mentioned IDs to validate and store
+//     const mentionedProfiles = await Profile.find({ _id: { $in: mentionedIds } });
+    
+//     if (!mentionedProfiles.length) {
+//       console.log("No valid profiles found for mentions");
+//     }
+
+//     // Create and save the comment with the author and mention references
+//     const comment = new Comment({
+//       commentAuthor: profile._id,
+//       article: articleId,
+//       userId: userId,
+//       text: text,
+//       mentions: mentionedIds,  // Store the mentioned profiles directly
+//     });
+
+//     await comment.save();
+
+//     // Add the comment to the article's comments array
+//     const article = await Article.findByIdAndUpdate(
+//       articleId,
+//       { $push: { comments: comment } }, // Push the comment into the comments array
+//       { new: true } // Return the updated article
+//     )
+//       .populate({
+//         path: 'comments.commentAuthor',
+//         select: 'firstName lastName profilePicture',
+//       })
+//       .populate({
+//         path: 'comments.mentions',
+//         select: 'firstName lastName profilePicture',
+//       });
+
+//     // Send notifications to mentioned users
+//     for (const mentionedProfile of mentionedProfiles) {
+//       const mentionNotification = new Notification({
+//         user: mentionedProfile.userId,  // The mentioned user's ID from Profile
+//         type: 'mention',
+//         article: article._id,
+//         message: `${profile.firstName} mentioned you in a comment.`,
+//       });
+      
+//       await mentionNotification.save();
+
+//       // Use Pusher to notify the mentioned user
+//       pusher.trigger('article-channel', 'new-mention', {
+//         mentionedUserId: mentionedProfile.userId,
+//         articleId,
+//         message: `You were mentioned in a comment by ${profile.firstName}.`,
+//       });
+//     }
+
+//     // Notify the article owner (if they're not the commenter)
+//     if (article.userId.toString() !== userId) {
+//       const articleOwnerNotification = new Notification({
+//         user: article.userId,  // The article owner
+//         type: 'comment',
+//         article: article._id,
+//         message: `${profile.firstName} commented on your article.`,
+//       });
+ 
+  
+
+
+//       await articleOwnerNotification.save();
+
+//       // Notify the article owner
+//       pusher.trigger('article-channel', 'new-comment', {
+//         articleId,
+//         userId,
+//         message: `User ${profile.firstName} commented on your article.`,
+//       });
+//     }
+
+    
+
+//     res.status(200).json({ message: 'Comment added successfully.', article });
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+//   }
+// };
+
+// export const commentArticle = async (req, res) => {
+//   try {
+//     const { articleId } = req.params;
+//     const { text } = req.body;
+//     const userId = req.userId; // Get the logged-in user's ID
+
+//     // Fetch the profile of the commenter
+//     const profile = await Profile.findOne({ userId });
+//     if (!profile) {
+//       return res.status(404).json({ message: 'Profile not found' });
+//     }
+
+//     // Detect mentions in the comment text (e.g., @username)
+//     const mentionPattern = /@\[(.*?)\]\((.*?)\)/g;
+//     const mentionedNames = [];
+//     let match;
+
+//     // Extract potential mention usernames from the text
+//     while ((match = mentionPattern.exec(text)) !== null) {
+//       const username = match[1];
+//       mentionedNames.push(username); // Collect all mention names
+//     }
+
+//     // Fetch profiles of all mentioned users in a single query
+//     const mentionedProfiles = await Profile.find({ 
+//       firstName: { $in: mentionedNames }
+//     });
+
+//     // Get the IDs of mentioned profiles to save in the comment's `mentions` field
+//     const mentionedIds = mentionedProfiles.map(profile => profile._id);
+
+//     // Create and save the comment with the author and mention references
+//     const comment = new Comment({
+//       commentAuthor: profile._id,
+//       article: articleId,
+//       userId: userId,
+//       text: text,
+//       mentions: mentionedIds,  // Store the mentioned profiles
+//     });
+
+//     await comment.save();
+
+//     // Add the comment to the article's comments array
+//     const article = await Article.findByIdAndUpdate(
+//       articleId,
+//       { $push: { comments: comment } }, // Push the comment into the comments array
+//       { new: true } // Return the updated article
+//     )
+//     .populate({
+//       path: 'comments.commentAuthor',
+//       select: 'firstName lastName profilePicture',
+//     })
+//     .populate({
+//       path: 'comments.mentions',
+//       select: 'firstName lastName profilePicture',
+//     });
+
+//     // Send notifications to mentioned users
+//     for (const mentionedProfile of mentionedProfiles) {
+//       const mentionNotification = new Notification({
+//         user: mentionedProfile.userId,  // The mentioned user's ID from Profile
+//         type: 'mention',
+//         article: article._id,
+//         message: `${profile.firstName} mentioned you in a comment.`,
+//       });
+//       await mentionNotification.save();
+
+//       // Use Pusher to notify the mentioned user
+//       pusher.trigger('article-channel', 'new-mention', {
+//         mentionedUserId: mentionedProfile.userId,
+//         articleId,
+//         message: `You were mentioned in a comment by ${profile.firstName}.`,
+//       });
+//     }
+
+//     // Notify the article owner (if they're not the commenter)
+//     if (article.userId.toString() !== userId) {
+//       const articleOwnerNotification = new Notification({
+//         user: article.userId,  // The article owner
+//         type: 'comment',
+//         article: article._id,
+//         message: `${profile.firstName} commented on your article.`,
+//       });
+//       await articleOwnerNotification.save();
+
+//       // Notify the article owner
+//       pusher.trigger('article-channel', 'new-comment', {
+//         articleId,
+//         userId,
+//         message: `User ${profile.firstName} commented on your article.`,
+//       });
+//     }
+
+//     res.status(200).json({ message: 'Comment added successfully.', article });
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+//   }
+// };
+
+
+
+// Comment on an article
+// export const commentArticle = async (req, res) => {
+//   try {
+//     const { articleId } = req.params;
+//     const { text } = req.body;
+//     const userId = req.userId;  // Get the logged-in user's ID
+
+//     // Find the user's profile based on userId
+//     const profile = await Profile.findOne({ userId });
+//     if (!profile) {
+//       return res.status(404).json({ message: 'Profile not found' });
+//     }
+
+//     // Create a new comment and set the userId to the Profile ID
+//     const comment = new Comment({
+//       commentAuthor: profile._id,  // Set userId to the Profile reference
+//       article: articleId,
+//       userId:userId,
+//       text,
+//     });
+
+//     await comment.save();
+
+//     // Add the comment to the article's comments array
+//     const article = await Article.findByIdAndUpdate(
+//       articleId,
+//       { $push: { comments: comment } },   // Push the comment into the comments array
+//       { new: true }                       // Return the updated article
+//     )
+//     .populate({
+//       path: 'comments.commentAuthor',  // Populate the comment author (Profile details)
+//       select: 'firstName lastName profilePicture',  // Only select necessary fields
+//     });
+
+//     // Create a notification if the comment is not by the article owner
+//     if (article.userId.toString() !== userId) {
+//       const notification = new Notification({
+//         user: article.userId,  // Article owner
+//         type: 'comment',
+//         article: article._id,
+//         message: `${profile.firstName} ${profile.lastName} commented on your article.`,
+//       });
+
+//       await notification.save();
+
+//       // Trigger Pusher notification
+//       pusher.trigger('article-channel', 'new-comment', {
+//         articleId,
+//         userId,
+//         message: `User ${profile.firstName} ${profile.lastName} commented on article ${articleId}.`,
+//       });
+//     }
+
+//     res.status(200).json({ message: 'Comment added successfully.', article });
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+//   }
+// };
+
+
+
+
+
+// // Comment on an article
+// export const commentArticle = async (req, res) => {
+//   try {
+//     const { articleId } = req.params;
+//     // const {userId} = req.params;
+//     console.log(articleId);
+//     // console.log(userId); 
+
+//     const { text} = req.body;
+//     const userId = req.userId; 
+//     // const file  = req.file;
+  
+    
+//     // if (!file || !file.originalname) {
+//     //   return res.status(400).json({ message: 'Invalid file data' });
+//     // }
+  
+  
+//   //   const att = {
+//   //     name: file.originalname,
+//   //     fileInfo:{
+//   //       size: file.size,
+//   //       mimetype: file.mimetype,
+//   //       location: file.location,
+//   //     },
+//   //     fileBucket: file.bucket,
+//   //     fileKey: file.key,
+//   //     location: file.location,
+//   //     contentType: file.mimetype,
+//   // };
+
+//   // const commentfile = new Comment({
+//   // file:att,
+//   // text,
+//   //   userId: req.userId,
+//   // });
+   
+
+
+//   const user = await User.findById(userId);
+//   if (!user) {
+//     return res.status(404).json({ message: 'User not found' });
+//   }
+
+
+//     // Create a new comment
+//     const comment = new Comment({ userId:req.userId, article: articleId, text });
+//     await comment.save();
+  
+//     const article = await Article.findByIdAndUpdate(articleId, {
+      
+//         $push: { comments:{
+//             _id: comment._id, 
+//             text: comment.text,
+//            userId:comment.userId,
+//            userId: user._id,
+//            firstName: user.firstName,
+//            lastName: user.lastName,
+//           //  file:comment.file
+//         } 
+                 
+//              },
+          
+//     });
+
+//  // Create a new notification
+//  if (article.userId.toString() !== userId) {
+//   // Create notification only if the article is not liked by its owner
+//   const notification = new Notification({
+//     user: article.userId,
+//     type: 'comment',
+//     article: article._id,
+//     message: `${user.firstName} ${user.lastName} comment on your article.`,
+//   });
+
+//   await notification.save();
+  
+  
+//   pusher.trigger('article-channel', 'new-comment', {
+//     articleId,
+//     userId,
+//     commentText,
+//     message: `User ${userId} commented on article ${articleId}.`,
+//   });
+
+
+//   // Emit socket event to the article owner
+//   // io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
+// }
+
+// await article.save();
+//     res.status(200).json({ message: 'Comment added successfully.',article});
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+//   }
+// };
 
 
 // Delete a comment
@@ -1149,9 +1687,15 @@ export const shareArticle = async (req, res) => {
       });
     
       await notification.save();
+
+      pusher.trigger('article-channel', 'share-article', {
+        articleId,
+        userId,
+        message: `User ${userId} shared article ${articleId}.`,
+      });
     
       // Emit socket event to the article owner
-      io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
+      // io.to(article.userId.toString()).emit('notification', notification,{ articleId, userId });
     }
 
     // Update the article's share count
@@ -1199,6 +1743,81 @@ export const deleteSharedArticle = async (req, res) => {
   }
 };
 
+
+
+
+export const uploadProfilePic = async (req, res) => {
+  const { file } = req;
+  const profileId = req.params.id; // Assuming this is the user ID
+  
+  try {
+   if (!file) {
+     return res.status(400).json({ message: 'No file uploaded' });
+   }
+  
+   // Upload image to Cloudinary
+   const result = await cloudinary.uploader.upload(file.path, {
+     folder: 'profile_pictures', // Optional folder organization in Cloudinary
+   });
+  
+   // Save the full URL in the profile
+  //  const updatedProfile = await Profile.findOneAndUpdate(
+  //    { profileId },
+  //    {}, // Save the full URL in profile
+  //    { new: true }
+  //  );
+   const updatedProfile = await Profile.findByIdAndUpdate(
+          profileId,
+          {  profilePicture: result.secure_url },
+          { new: true }
+        );
+    
+  
+   res.json({ message: 'Profile picture updated successfully', url: result.secure_url ,profile: updatedProfile,});
+  } catch (error) {
+   console.error('Error uploading profile picture:', error);
+   res.status(500).json({ message: 'Internal server error' });
+  }
+  };
+
+
+
+
+
+
+// export const uploadProfilePic = async (req, res) => {
+
+//   try {
+//     const profileId = req.params.id;
+
+//     // Ensure a file was uploaded
+//     if (!req.file) {
+//       return res.status(400).json({ message: "No file uploaded" });
+//     }
+
+//     // Get the uploaded file's path
+//     const profilePictureUrl = `${req.file.filename}`;
+
+//     // Update the user's profile with the new profile picture URL
+//     const updatedProfile = await Profile.findByIdAndUpdate(
+//       profileId,
+//       { profilePicture: profilePictureUrl },
+//       { new: true }
+//     );
+
+//     if (!updatedProfile) {
+//       return res.status(404).json({ message: "Profile not found" });
+//     }
+
+//     res.status(200).json({
+//       message: "Profile picture uploaded successfully",
+//       profile: updatedProfile,
+//     });
+//   } catch (error) {
+//     console.error("Error uploading profile picture:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// };
 
 
 
@@ -1262,8 +1881,16 @@ export const shareJob = async (req, res) => {
 
       await notification.save();
 
+
+      
+      pusher.trigger('job-channel', 'share-job', {
+        jobId,
+        userId,
+        message: `User ${userId} shared article ${jobId}.`,
+      });
+    
       // Emit socket event to the job owner
-      io.to(job.userId.toString()).emit('notification', notification, { jobId, userId });
+      // io.to(job.userId.toString()).emit('notification', notification, { jobId, userId });
     }
 
     // Update the job's share count
@@ -1465,7 +2092,13 @@ if (comment.userId.toString() !== userId) {
   await notification.save();
 
   // Emit socket event to the article owner
-  io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
+  pusher.trigger('issue-channel', 'like-issue-comment', {
+    issueId,
+    userId,
+    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss comment.`,
+  });
+
+  // io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
 }
 
 
@@ -1552,7 +2185,13 @@ export const likeIssue = async (req, res) => {
   await notification.save();
 
   // Emit socket event to the article owner
-  io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
+  pusher.trigger('issue-channel', 'like-issue', {
+    issueId,
+    userId,
+    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss issue.`,
+  });
+
+  // io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
 }
 
     // Check if the user has already liked the article
@@ -1595,69 +2234,190 @@ export const likeIssue = async (req, res) => {
 
 
 
+
+
+
+
 // Comment on an  Issue
+
+
+
+
 export const commentIssue = async (req, res) => {
   try {
     const { issueId } = req.params;
+    const { text } = req.body;
+    const userId = req.userId; // Get the logged-in user's ID
+
+    // Fetch the profile of the commenter
+    const profile = await Profile.findOne({ userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    // Detect mentions in the comment text (pattern `@[displayName](userId)`)
+    const mentionPattern = /@\[(.*?)\]\((.*?)\)/g;
+    const mentionedIds = [];
+    let match;
+
+    // Extract and log each mention ID from text
+    while ((match = mentionPattern.exec(text)) !== null) {
+      const mentionedUserId = match[2]; // Extract userId directly
+      mentionedIds.push(mentionedUserId);
+    }
+
+    // Fetch profiles for all mentioned IDs to validate and store
+    const mentionedProfiles = await Profile.find({ _id: { $in: mentionedIds } });
+    
+    if (!mentionedProfiles.length) {
+      console.log("No valid profiles found for mentions");
+    }
+
+    // Create and save the comment with the author and mention references
+    const comment = new Comment({
+      commentAuthor: profile._id,
+      issue: issueId,
+      userId: userId,
+      text: text,
+      mentions: mentionedIds,  // Store the mentioned profiles directly
+    });
+
+    await comment.save();
+
+    // Add the comment to the article's comments array
+    const issue = await Issue.findByIdAndUpdate(
+      issueId,
+      { $push: { comments: comment } }, // Push the comment into the comments array
+      { new: true } // Return the updated article
+    )
+      .populate({
+        path: 'comments.commentAuthor',
+        select: 'firstName lastName profilePicture userId',
+      })
+      .populate({
+        path: 'comments.mentions',
+        select: 'firstName lastName profilePicture',
+      });
+
+    // Flag to track if the article owner was mentioned
+    let articleOwnerMentioned = false;
+
+    // Send notifications to mentioned users
+    for (const mentionedProfile of mentionedProfiles) {
+      if (mentionedProfile.userId.toString() === issue.userId.toString()) {
+        articleOwnerMentioned = true; // Mark that the article owner was mentioned
+      }
+
+      const mentionNotification = new Notification({
+        user: mentionedProfile.userId,  // The mentioned user's ID from Profile
+        type: 'mention',
+        issue: issue._id,
+        message: `${profile.firstName} mentioned you in a comment.`,
+      });
+      
+      await mentionNotification.save();
+
+      // Use Pusher to notify the mentioned user
+      pusher.trigger('issue-channel', 'new-mention', {
+        mentionedUserId: mentionedProfile.userId,
+        issueId,
+        message: `You were mentioned in a comment by ${profile.firstName}.`,
+      });
+    }
+
+    // If the article owner wasn't mentioned, send a separate comment notification
+    if (!articleOwnerMentioned && issue.userId.toString() !== userId) {
+      const articleOwnerNotification = new Notification({
+        user: issue.userId,  // The article owner
+        type: 'comment',
+        issue: issue._id,
+        message: `${profile.firstName} commented on your issue.`,
+      });
+      await articleOwnerNotification.save();
+
+      // Notify the article owner
+      pusher.trigger('issue-channel', 'new-comment', {
+        issueId,
+        userId,
+        message: `User ${profile.firstName} commented on your issue.`,
+      });
+    }
+
+    res.status(200).json({ message: 'Comment added successfully.', issue });
+  } catch (error) {
+    console.error('Error commenting on article:', error);
+    res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+  }
+};
+// export const commentIssue = async (req, res) => {
+//   try {
+//     const { issueId } = req.params;
 
 
-    const { text} = req.body;
-    const userId = req.userId; 
+//     const { text} = req.body;
+//     const userId = req.userId; 
 
   
     
 
 
 
-  const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
+//   const user = await User.findById(userId);
+//   if (!user) {
+//     return res.status(404).json({ message: 'User not found' });
+//   }
 
 
-    // Create a new comment
-    const comment = new Comment({ userId:req.userId, issue: issueId, text });
-    await comment.save();
+//     // Create a new comment
+//     const comment = new Comment({ userId:req.userId, issue: issueId, text });
+//     await comment.save();
   
-    const issue = await Issue.findByIdAndUpdate(issueId, {
+//     const issue = await Issue.findByIdAndUpdate(issueId, {
       
-        $push: { comments:{
-            _id: comment._id, 
-            text: comment.text,
-           userId:comment.userId,
-           userId: user._id,
-           firstName: user.firstName,
-           lastName: user.lastName,
-          //  file:comment.file
-        } 
+//         $push: { comments:{
+//             _id: comment._id, 
+//             text: comment.text,
+//            userId:comment.userId,
+//            userId: user._id,
+//            firstName: user.firstName,
+//            lastName: user.lastName,
+//           //  file:comment.file
+//         } 
                  
-             },
+//              },
           
-    });
+//     });
 
- // Create a new notification
- if (issue.userId.toString() !== userId) {
-  // Create notification only if the article is not liked by its owner
-  const notification = new Notification({
-    user: issue.userId,
-    type: 'comment',
-    issue: issue._id,
-    message: `${user.firstName} ${user.lastName} comment on your issue.`,
-  });
+//  // Create a new notification
+//  if (issue.userId.toString() !== userId) {
+//   // Create notification only if the article is not liked by its owner
+//   const notification = new Notification({
+//     user: issue.userId,
+//     type: 'comment',
+//     issue: issue._id,
+//     message: `${user.firstName} ${user.lastName} comment on your issue.`,
+//   });
 
-  await notification.save();
+//   await notification.save();
 
-  // Emit socket event to the article owner
-  io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
-}
+//   // Emit socket event to the article owner
+    
+//   pusher.trigger('issue-channel', 'new-comment', {
+//     issueId,
+//     userId,
+//     commentText,
+//     message: `User ${userId} commented on article ${issueId}.`,
+//   });
+//   // io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
+// }
 
-await issue.save();
-    res.status(200).json({ message: 'Comment added successfully.',issue});
-  } catch (error) {
-    console.error('Error commenting on article:', error);
-    res.status(500).json({ message: 'An error occurred while commenting on the article.' });
-  }
-};
+// await issue.save();
+//     res.status(200).json({ message: 'Comment added successfully.',issue});
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+//   }
+// };
 
 
 
@@ -1776,7 +2536,13 @@ export const shareIssue = async (req, res) => {
       await notification.save();
     
       // Emit socket event to the article owner
-      io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
+      // io.to(issue.userId.toString()).emit('notification', notification,{ issueId, userId });
+      pusher.trigger('issue-channel', 'share-issue', {
+        issueId,
+        userId,
+        message: `User ${userId} shared issue ${issueId}.`,
+      });
+    
     }
 
     // Update the article's share count
@@ -1802,20 +2568,18 @@ export const shareIssue = async (req, res) => {
 
 
 
-
-// Like an Learn
+// Like a Learn 
 export const likeLearn = async (req, res) => {
   try {
     const { learnId } = req.params;
     const userId = req.userId; // Assuming user ID is available from the authenticated request
 
-    // Fetch the article
+    // Fetch the Learn document
     const learn = await Learn.findById(learnId);
     if (!learn) {
-      return res.status(404).json({ message: 'Article not found' });
+      return res.status(404).json({ message: 'Learn not found' });
     }
 
-    console.log('adhashd')
     // Fetch the user profile details
     const user = await User.findById(userId);
     if (!user) {
@@ -1828,188 +2592,522 @@ export const likeLearn = async (req, res) => {
       lastName: user.lastName,
     };
 
+    // Ensure that learn.userId is defined before calling .toString()
+    if (learn.userId && learn.userId.toString() !== userId) {
+      // Create notification only if the learn is not liked by its owner
+      const notification = new Notification({
+        user: learn.userId,
+        type: 'like',
+        learn: learn._id,
+        message: `${user.firstName} ${user.lastName} liked your learn.`,
+      });
 
- // Create a new notification
- if (learn.userId.toString() !== userId) {
-  // Create notification only if the article is not liked by its owner
-  const notification = new Notification({
-    user: learn.userId,
-    type: 'like',
-    learn: learn._id,
-    message: `${user.firstName} ${user.lastName} liked your learn.`,
-  });
+      await notification.save();
 
-  await notification.save();
+      // Push a notification using Pusher
+      pusher.trigger('learn-channel', 'like-learn', {
+        learnId,
+        userId,
+        message: `${user.firstName} ${user.lastName} liked your learn.`,
+      });
+    }
 
-  // Emit socket event to the article owner
-  io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
-}
-
-    // Check if the user has already liked the article
+    // Check if the user has already liked the learn
     const existingLikeIndex = learn.likedBy.findIndex(
       (likedUser) => likedUser.userId.toString() === userId
     );
 
     if (existingLikeIndex === -1) {
-      // If user hasn't liked the article yet, like it
+      // If user hasn't liked the learn yet, like it
       learn.likedBy.push(userProfile);
       learn.likes += 1;
-           // Emit a socket event that the article was liked
-          //  io.emit('like_article', { articleId, userId });
-           console.log(learnId)
     } else {
-      // If user has already liked the article, unlike it
+      // If user has already liked the learn, unlike it
       learn.likedBy.splice(existingLikeIndex, 1);
       learn.likes -= 1;
-      // Emit a socket event that the article was unliked
-      // io.emit('article_unliked', { articleId, userId });
     }
 
     await learn.save();
-
-    // Emit a socket event to notify clients about the updated like count
-    // emitLikeNotification(articleId, article.likes);
 
     res.status(200).json({
       learnId,
       likes: learn.likes,
       likedBy: learn.likedBy,
-      message: 'Article liked/unliked successfully.',
+      message: 'Learn liked/unliked successfully.',
     });
   } catch (error) {
-    console.error('Error liking article:', error);
-    res.status(500).json({ message: 'An error occurred while liking the article.', error: error.message });
+    console.error('Error liking learn:', error);
+    res.status(500).json({ message: 'An error occurred while liking the learn.', error: error.message });
   }
 };
 
 
 
-// Comment on an  Learn
-export const commentLearn = async (req, res) => {
 
+
+export const commentLearn = async (req, res) => {
   try {
     const { learnId } = req.params;
+    const { text } = req.body;
+    const userId = req.userId; // Get the logged-in user's ID
+
+    // Fetch the profile of the commenter
+    const profile = await Profile.findOne({ userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    // Detect mentions in the comment text (pattern `@[displayName](userId)`)
+    const mentionPattern = /@\[(.*?)\]\((.*?)\)/g;
+    const mentionedIds = [];
+    let match;
+
+    // Extract and log each mention ID from text
+    while ((match = mentionPattern.exec(text)) !== null) {
+      const mentionedUserId = match[2]; // Extract userId directly
+      mentionedIds.push(mentionedUserId);
+    }
+
+    // Fetch profiles for all mentioned IDs to validate and store
+    const mentionedProfiles = await Profile.find({ _id: { $in: mentionedIds } });
+    
+    if (!mentionedProfiles.length) {
+      console.log("No valid profiles found for mentions");
+    }
+
+    // Create and save the comment with the author and mention references
+    const comment = new Comment({
+      commentAuthor: profile._id,
+      learn: learnId,
+      userId: userId,
+      text: text,
+      mentions: mentionedIds,  // Store the mentioned profiles directly
+    });
+
+    await comment.save();
+
+    // Add the comment to the article's comments array
+    const learn = await Learn.findByIdAndUpdate(
+      learnId,
+      { $push: { comments: comment } }, // Push the comment into the comments array
+      { new: true } // Return the updated article
+    )
+      .populate({
+        path: 'comments.commentAuthor',
+        select: 'firstName lastName profilePicture userId',
+      })
+      .populate({
+        path: 'comments.mentions',
+        select: 'firstName lastName profilePicture',
+      });
+
+    // Flag to track if the article owner was mentioned
+    let articleOwnerMentioned = false;
+
+    // Send notifications to mentioned users
+    for (const mentionedProfile of mentionedProfiles) {
+      if (mentionedProfile.userId.toString() === learn.userId.toString()) {
+        articleOwnerMentioned = true; // Mark that the article owner was mentioned
+      }
+
+      const mentionNotification = new Notification({
+        user: mentionedProfile.userId,  // The mentioned user's ID from Profile
+        type: 'mention',
+        learn: learn._id,
+        message: `${profile.firstName} mentioned you in a comment.`,
+      });
+      
+      await mentionNotification.save();
+
+      // Use Pusher to notify the mentioned user
+      pusher.trigger('learn-channel', 'new-mention', {
+        mentionedUserId: mentionedProfile.userId,
+        learnId,
+        message: `You were mentioned in a comment by ${profile.firstName}.`,
+      });
+    }
+
+    // If the article owner wasn't mentioned, send a separate comment notification
+    if (!articleOwnerMentioned && learn.userId.toString() !== userId) {
+      const articleOwnerNotification = new Notification({
+        user: learn.userId,  // The article owner
+        type: 'comment',
+        learn: learn._id,
+        message: `${profile.firstName} commented on your learn.`,
+      });
+      await articleOwnerNotification.save();
+
+      // Notify the article owner
+      pusher.trigger('learn-channel', 'new-comment', {
+        learnId,
+        userId,
+        message: `User ${profile.firstName} commented on your learn.`,
+      });
+    }
+
+    res.status(200).json({ message: 'Comment added successfully.', learn });
+  } catch (error) {
+    console.error('Error commenting on article:', error);
+    res.status(500).json({ message: 'An error occurred while commenting on the article.' });
+  }
+};
+
+// export const commentLearn = async (req, res) => {
+//   try {
+//     const { learnId } = req.params;
+//     const { text } = req.body;
+//     const userId = req.userId;  // Get the logged-in user's ID from auth middleware
+
+//     // Find the user's profile based on userId
+//     const profile = await Profile.findOne({ userId });
+//     if (!profile) {
+//       return res.status(404).json({ message: 'Profile not found' });
+//     }
+
+//     // Create a new comment with the correct userId (profileId)
+//     const comment = new Comment({
+//       userId: profile._id,  // Set userId to the Profile reference
+//       text: text,  // Add the comment text
+//     });
+//     await comment.save();
+
+//     // Add the comment to the learn document
+//     const learn = await Learn.findByIdAndUpdate(
+//       learnId,
+//       { $push: { comments: comment } },   // Add the new comment to comments array
+//       { new: true }                       // Return the updated Learn document
+//     ).populate({
+//       path: 'comments.userId',  // Populate comment authors' profiles
+//       select: 'firstName lastName profilePicture',  // Only return the necessary fields
+//     });
+
+//     res.status(200).json({
+//       message: 'Comment added successfully.',
+//       learn,
+//     });
+//   } catch (error) {
+//     console.error('Error commenting on learn:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the learn.' });
+//   }
+// };
 
 
-    const { text} = req.body;
-    const userId = req.userId; 
+
+
+
+// Comment on an  Learn
+// export const commentLearn = async (req, res) => {
+
+//   try {
+//     const { learnId } = req.params;
+
+
+//     const { text} = req.body;
+//     const userId = req.userId; 
 
   
     
 
 
 
-  const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
+//   const user = await User.findById(userId);
+//   if (!user) {
+//     return res.status(404).json({ message: 'User not found' });
+//   }
 
 
-    // Create a new comment
-    const comment = new Comment({ userId:req.userId, learn: learnId, text });
-    await comment.save();
+//     // Create a new comment
+//     const comment = new Comment({ userId:req.userId, learn: learnId, text });
+//     await comment.save();
   
-    const learn = await Learn.findByIdAndUpdate(learnId, {
+//     const learn = await Learn.findByIdAndUpdate(learnId, {
       
-        $push: { comments:{
-            _id: comment._id, 
-            text: comment.text,
-           userId:comment.userId,
-           userId: user._id,
-           firstName: user.firstName,
-           lastName: user.lastName,
-          //  file:comment.file
-        } 
+//         $push: { comments:{
+//             _id: comment._id, 
+//             text: comment.text,
+//            userId:comment.userId,
+//            userId: user._id,
+//            firstName: user.firstName,
+//            lastName: user.lastName,
+//           //  file:comment.file
+//         } 
                  
-             },
+//              },
           
-    });
+//     });
 
- // Create a new notification
- if (learn.userId.toString() !== userId) {
-  // Create notification only if the article is not liked by its owner
-  const notification = new Notification({
-    user: learn.userId,
-    type: 'comment',
-    learn: learn._id,
-    message: `${user.firstName} ${user.lastName} comment on your learn.`,
-  });
+//  // Create a new notification
+//  if (learn.userId && learn.userId.toString() !== userId) {
+//   // Create notification only if the article is not liked by its owner
+//   const notification = new Notification({
+//     user: learn.userId,
+//     type: 'comment',
+//     learn: learn._id,
+//     message: `${user.firstName} ${user.lastName} comment on your learn.`,
+//   });
 
-  await notification.save();
+//   await notification.save();
+//   pusher.trigger('learn-channel', 'new-comment', {
+//     learnId,
+//     userId,
+//     commentText,
+//     message: `User ${userId} commented on article ${learnId}.`,
+//   });
+//   // Emit socket event to the article owner
+//   // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
+// }
 
-  // Emit socket event to the article owner
-  io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
-}
-
-await learn.save();
-    res.status(200).json({ message: 'Comment added successfully.',learn});
-  } catch (error) {
-    console.error('Error commenting on article:', error);
-    res.status(500).json({ message: 'An error occurred while commenting on the learn.' });
-  }
+// await learn.save();
+//     res.status(200).json({ message: 'Comment added successfully.',learn});
+//   } catch (error) {
+//     console.error('Error commenting on article:', error);
+//     res.status(500).json({ message: 'An error occurred while commenting on the learn.' });
+//   }
 
 
  
-};
-
-
-
-
-// Share an Learn
+// };
 
 export const shareLearn = async (req, res) => {
   try {
     const { learnId } = req.params;
-    const userId = req.userId; // Assuming you get the userId from the authenticated user
+    const userId = req.userId;
 
-    // Check if the article exists
-    const learn = await Learn.findById(learnId);
+    // Check if the learn exists and populate the author's details
+    const learn = await Learn.findById(learnId).populate('author', 'firstName lastName profilePicture');
     if (!learn) {
-      return res.status(404).json({ message: 'learn not found' });
+      return res.status(404).json({ message: 'Learn not found' });
     }
 
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    // Create a new share record (assuming you have a Share schema)
+
+    // Create a new share record
     const share = new Share({ user: userId, learn: learnId });
     await share.save();
 
-    if (learn.userId.toString() !== userId) {
-      // Create notification only if the article is not liked by its owner
+    if (learn.userId && learn.userId.toString() !== userId) {
       const notification = new Notification({
         user: learn.userId,
         type: 'share',
         learn: learn._id,
         message: `${user.firstName} ${user.lastName} shared your learn.`,
       });
-    
       await notification.save();
-    
-      // Emit socket event to the article owner
-      io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
+
+      pusher.trigger('learn-channel', 'share-learn', {
+        learnId,
+        userId,
+        message: `User ${userId} shared learn ${learn.text}.`,
+      });
     }
 
-    // Update the article's share count
-    const updatedLearn = await Learn.findByIdAndUpdate(learnId, { $inc: { shares: 1 } }, { new: true });
+    // Update the learn's share count
+    const updatedLearn = await Learn.findByIdAndUpdate(learnId, { $inc: { shares: 1 } }, { new: true })
+      .populate('author', 'firstName lastName profilePicture');  // Populate the author field
 
     // Check if the user's profile exists
-    const profile = await Profile.findOne({ userId: userId }); // Use userId field correctly
+    const profile = await Profile.findOne({ userId });
     if (!profile) {
       return res.status(404).json({ message: 'User profile not found' });
     }
 
-    // Update the user's profile to include the shared article
-    profile.sharedLearns.addToSet(learnId); // Add articleId to sharedArticles array
+    // Update the user's profile to include the shared learn
+    profile.sharedLearns.addToSet(learnId);
     const updatedProfile = await profile.save();
 
-    res.status(200).json({ message: 'learn shared successfully.', sharedLearn: updatedLearn, updatedProfile });
+    // Return the populated learn with author details
+    res.status(200).json({
+      message: 'Learn shared successfully.',
+      sharedLearn: updatedLearn,  // Ensure this includes the author details
+      updatedProfile,
+    });
   } catch (error) {
-    console.error('Error sharing article:', error);
+    console.error('Error sharing learn:', error);
     res.status(500).json({ message: 'An error occurred while sharing the learn.' });
   }
 };
+
+
+// export const shareLearn = async (req, res) => {
+//   try {
+//     const { learnId } = req.params;
+//     const userId = req.userId; // Assuming you get the userId from the authenticated user
+
+//     // Check if the learn exists
+//     const learn = await Learn.findById(learnId).populate('author', 'firstName lastName profilePicture');
+//     if (!learn) {
+//       return res.status(404).json({ message: 'Learn not found' });
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     // Create a new share record (assuming you have a Share schema)
+//     const share = new Share({ user: userId, learn: learnId });
+//     await share.save();
+
+//     if (learn.userId && learn.userId.toString() !== userId) {
+//       // Create notification only if the learn is not shared by its owner
+//       const notification = new Notification({
+//         user: learn.userId,
+//         type: 'share',
+//         learn: learn._id,
+//         message: `${user.firstName} ${user.lastName} shared your learn.`,
+//       });
+
+//       await notification.save();
+
+//       pusher.trigger('learn-channel', 'share-learn', {
+//         learnId,
+//         userId,
+//         message: `User ${userId} shared learn ${learn.text}.`,
+//       });
+//     }
+
+//     // Return the shared learn with the populated author's details
+//     const sharedLearn = await Learn.findById(learnId).populate('author', 'firstName lastName profilePicture');
+
+//     res.status(200).json({
+//       message: 'Learn shared successfully.',
+//       sharedLearn,
+//     });
+//   } catch (error) {
+//     console.error('Error sharing learn:', error);
+//     res.status(500).json({ message: 'An error occurred while sharing the learn.' });
+//   }
+// };
+
+
+
+// export const shareLearn = async (req, res) => {
+//   try {
+//     const { learnId } = req.params;
+//     const userId = req.userId; // Assuming you get the userId from the authenticated user
+
+//     // Check if the learn exists
+//     const learn = await Learn.findById(learnId);
+//     if (!learn) {
+//       return res.status(404).json({ message: 'Learn not found' });
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     // Create a new share record (assuming you have a Share schema)
+//     const share = new Share({ user: userId, learn: learnId });
+//     await share.save();
+
+//     // Ensure that learn.userId is defined before calling .toString()
+//     if (learn.userId && learn.userId.toString() !== userId) {
+//       // Create notification only if the learn is not shared by its owner
+//       const notification = new Notification({
+//         user: learn.userId,
+//         type: 'share',
+//         learn: learn._id,
+//         message: `${user.firstName} ${user.lastName} shared your learn.`,
+//       });
+    
+//       await notification.save();
+
+//       pusher.trigger('learn-channel', 'share-learn', {
+//         learnId,
+//         userId,
+//         message: `User ${userId} shared learn ${learn}.`,
+//       });
+//     }
+
+//     // Update the learn's share count
+//     const updatedLearn = await Learn.findByIdAndUpdate(learnId, { $inc: { shares: 1 } }, { new: true });
+
+//     // Check if the user's profile exists
+//     const profile = await Profile.findOne({ userId: userId });
+//     if (!profile) {
+//       return res.status(404).json({ message: 'User profile not found' });
+//     }
+
+//     // Update the user's profile to include the shared learn
+//     profile.sharedLearns.addToSet(learnId); // Add learnId to sharedLearns array
+//     const updatedProfile = await profile.save();
+
+//     res.status(200).json({ message: 'Learn shared successfully.', sharedLearn: updatedLearn, updatedProfile });
+//   } catch (error) {
+//     console.error('Error sharing learn:', error);
+//     res.status(500).json({ message: 'An error occurred while sharing the learn.' });
+//   }
+// };
+
+// Share an Learn
+
+// export const shareLearn = async (req, res) => {
+//   try {
+//     const { learnId } = req.params;
+//     const userId = req.userId; // Assuming you get the userId from the authenticated user
+
+//     // Check if the article exists
+//     const learn = await Learn.findById(learnId);
+//     if (!learn) {
+//       return res.status(404).json({ message: 'learn not found' });
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+//     // Create a new share record (assuming you have a Share schema)
+//     const share = new Share({ user: userId, learn: learnId });
+//     await share.save();
+
+//     if (learn.userId.toString() !== userId) {
+//       // Create notification only if the article is not liked by its owner
+//       const notification = new Notification({
+//         user: learn.userId,
+//         type: 'share',
+//         learn: learn._id,
+//         message: `${user.firstName} ${user.lastName} shared your learn.`,
+//       });
+    
+//       await notification.save();
+
+
+//       pusher.trigger('learn-channel', 'share-learn', {
+//         learnId,
+//         userId,
+//         message: `User ${userId} shared learn ${learn}.`,
+//       });
+    
+    
+
+    
+//       // Emit socket event to the article owner
+//       // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
+//     }
+
+//     // Update the article's share count
+//     const updatedLearn = await Learn.findByIdAndUpdate(learnId, { $inc: { shares: 1 } }, { new: true });
+
+//     // Check if the user's profile exists
+//     const profile = await Profile.findOne({ userId: userId }); // Use userId field correctly
+//     if (!profile) {
+//       return res.status(404).json({ message: 'User profile not found' });
+//     }
+
+//     // Update the user's profile to include the shared article
+//     profile.sharedLearns.addToSet(learnId); // Add articleId to sharedArticles array
+//     const updatedProfile = await profile.save();
+
+//     res.status(200).json({ message: 'learn shared successfully.', sharedLearn: updatedLearn, updatedProfile });
+//   } catch (error) {
+//     console.error('Error sharing article:', error);
+//     res.status(500).json({ message: 'An error occurred while sharing the learn.' });
+//   }
+// };
 
 
 
@@ -2088,8 +3186,15 @@ export const likeJob = async (req, res) => {
 
   await notification.save();
 
-  // Emit socket event to the article owner
-  io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
+
+  pusher.trigger('job-channel', 'like-job', {
+    jobId,
+    userId,
+    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss article.`,
+  });
+
+  // // Emit socket event to the article owner
+  // io.to(job.userId.toString()).emit('notification', notification,{ jobId, userId });
 }
 
     // Check if the user has already liked the article
@@ -2220,7 +3325,14 @@ export const getallArticle = async (req, res) => {
     // Fetch paginated data
     const article = await Article.find()
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .populate('author', 'firstName lastName profilePicture') 
+      .populate({
+        path: 'comments.commentAuthor',  // Populate comment authors
+        select: 'firstName lastName profilePicture userId',  // Select necessary fields from Profile
+      }) // Dynamically fetch author details
+      .exec();
+
 
     const totalPages = Math.ceil(totalItems / limit);
 
@@ -2269,9 +3381,21 @@ export const createArticle = async (req, res) => {
     contentType: file.mimetype,
 };
 
+
+const result = await cloudinary.uploader.upload(file.path, {
+  folder: 'Article', // Optional folder organization in Cloudinary
+});
+
+
 const user = await User.findById(userId);
 if (!user) {
   return res.status(404).json({ message: 'User not found' });
+}
+
+
+const profile = await Profile.findOne({ userId });
+if (!profile) {
+  return res.status(404).json({ message: 'Profile not found' });
 }
 
 
@@ -2280,16 +3404,24 @@ if (!user) {
   
   const article = new Article({
     text:text,
-    file:att,
-    firstName: user.firstName,
-    lastName: user.lastName,
+    file:result.secure_url,
+    // firstName: user.firstName,
+    // lastName: user.lastName,
     userId: req.userId,
+    // profilePicture: profile.profilePicture,
+    author: profile._id  
   });
 
   await article.save();
 
+      const populatedArticle = await Article.findById(article._id)
+      .populate('author', 'firstName lastName profilePicture')
+      .exec();
+
+
   res.status(201).json({
-    article,
+    url: result.secure_ur,
+    article:populatedArticle,
     message: "succsessfully created",
   });
 };
@@ -2390,7 +3522,14 @@ export const getallJob = async (req, res) => {
     // Fetch paginated data
     const job = await Job.find()
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .populate('author', 'firstName lastName profilePicture')  // Dynamically fetch author details
+      .populate({
+        path: 'comments.commentAuthor',  // Populate comment authors
+        select: 'firstName lastName profilePicture userId',  // Select necessary fields from Profile
+      }) // Dynamically fetch author details
+      .exec();
+      
 
     const totalPages = Math.ceil(totalItems / limit);
 
@@ -2434,27 +3573,45 @@ export const createJob = async (req, res) => {
     contentType: file.mimetype,
 };
 
+
+
+const result = await cloudinary.uploader.upload(file.path, {
+  folder: 'Jobs', // Optional folder organization in Cloudinary
+});
+
 const user = await User.findById(userId);
 if (!user) {
   return res.status(404).json({ message: 'User not found' });
 }
 
 
+const profile = await Profile.findOne({ userId });
+if (!profile) {
+  return res.status(404).json({ message: 'Profile not found' });
+}
+
 
   
   
   const job = new Job({
     text:text,
-    file:att,
-    firstName: user.firstName,
-    lastName: user.lastName,
+    file:result.secure_url,
     userId: req.userId,
+    // profilePicture: profile.profilePicture,
+    author: profile._id  
   });
 
   await job.save();
 
+  
+const populatedArticle = await Job.findById(job._id)
+.populate('author', 'firstName lastName profilePicture')
+.exec();
+
+
   res.status(201).json({
-    job,
+    url: result.secure_ur,
+    job:populatedArticle,
     message: "succsessfully created",
   });
 };
@@ -2520,7 +3677,14 @@ export const getallIssue = async (req, res) => {
     // Fetch paginated data
     const issue = await Issue.find()
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .populate('author', 'firstName lastName profilePicture')
+      .populate({
+        path: 'comments.commentAuthor',  // Populate comment authors
+        select: 'firstName lastName profilePicture userId',  // Select necessary fields from Profile
+      })   // Dynamically fetch author details
+      .exec();
+
 
     const totalPages = Math.ceil(totalItems / limit);
 
@@ -2551,22 +3715,33 @@ export const createIssue = async (req, res) => {
   }
 
 
-  const att = {
-    name: file.originalname,
-    fileInfo:{
-      size: file.size,
-      mimetype: file.mimetype,
-      location: file.location,
-    },
-    fileBucket: file.bucket,
-    fileKey: file.key,
-    location: file.location,
-    contentType: file.mimetype,
-};
+//   const att = {
+//     name: file.originalname,
+//     fileInfo:{
+//       size: file.size,
+//       mimetype: file.mimetype,
+//       location: file.location,
+//     },
+//     fileBucket: file.bucket,
+//     fileKey: file.key,
+//     location: file.location,
+//     contentType: file.mimetype,
+// };
+
+const result = await cloudinary.uploader.upload(file.path, {
+  folder: 'Issue', // Optional folder organization in Cloudinary
+});
+
 
 const user = await User.findById(userId);
 if (!user) {
   return res.status(404).json({ message: 'User not found' });
+}
+
+
+const profile = await Profile.findOne({ userId });
+if (!profile) {
+  return res.status(404).json({ message: 'Profile not found' });
 }
 
 
@@ -2575,16 +3750,23 @@ if (!user) {
   
   const issue = new Issue({
     text:text,
-    file:att,
-    firstName: user.firstName,
-    lastName: user.lastName,
+    file:result.secure_url,
+    // firstName: user.firstName,
+    // lastName: user.lastName,
     userId: req.userId,
+    // profilePicture: profile.profilePicture,
+    author: profile._id  
   });
 
   await issue.save();
 
+      const populatedIssue = await Issue.findById(issue._id)
+      .populate('author', 'firstName lastName profilePicture')
+      .exec();
+
+
   res.status(201).json({
-    issue,
+    issue:populatedIssue,
     message: "succsessfully created",
   });
 
@@ -2715,7 +3897,7 @@ export const saveYouTubeData = async (req, res) => {
     //   return res.status(400).json({ message: 'Video ID, title, user ID, and API key are required' });
     // }
     const API_KEY = 'AIzaSyC__44NzVKI2fNImwSu_d7T8ejLGGd5BPE';
-    const channelId = 'UCapzEjUWyv7H4GtPQrgybTQ';
+    const channelId = 'UC-Z61rrjUu-YwySJq52_-fw';
     let nextPageToken = 'CAUQAA';
 
     const response = await axios.get(`https://www.googleapis.com/youtube/v3/search`, {
@@ -3030,7 +4212,13 @@ export const getallLearn = async (req, res) => {
     // Fetch paginated data
     const learn = await Learn.find()
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .populate('author', 'firstName lastName profilePicture')  // Dynamically fetch author details
+      .populate({
+        path: 'comments.commentAuthor',  // Populate comment authors
+        select: 'firstName lastName profilePicture userId',  // Select necessary fields from Profile
+      }) 
+      .exec();
 
     const totalPages = Math.ceil(totalItems / limit);
 
@@ -3051,53 +4239,57 @@ export const getallLearn = async (req, res) => {
 
 // Create Learn //
 export const createLearn = async (req, res) => {
-  const {text} = req.body;
-  const file  = req.file;
+  const { text } = req.body;
+  const file = req.file;
   const userId = req.userId;
-  // const {userId} = req.params;
-  
+
   if (!file || !file.originalname) {
     return res.status(400).json({ message: 'Invalid file data' });
   }
 
+  try {
+    // Upload image or video to Cloudinary
+    const result = await cloudinary.uploader.upload(file.path, {
+      folder: 'Learn',  // Store in Learn folder
+      resource_type: 'auto',  // Let Cloudinary detect whether it's an image or video
+    });
 
-  const att = {
-    name: file.originalname,
-    fileInfo:{
-      size: file.size,
-      mimetype: file.mimetype,
-      location: file.location,
-    },
-    fileBucket: file.bucket,
-    fileKey: file.key,
-    location: file.location,
-    contentType: file.mimetype,
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const profile = await Profile.findOne({ userId });
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    // Create the Learn entry
+    const learn = new Learn({
+      text: text,
+      file: result.secure_url,  // Store the file URL (image/video)
+      userId: req.userId,
+      author: profile._id  // Link to the author's profile
+    });
+
+    await learn.save();
+
+    // Populate the author details after saving the learn entry
+    const populatedLearn = await Learn.findById(learn._id)
+      .populate('author', 'firstName lastName profilePicture')
+      .exec();
+
+    res.status(201).json({
+      url: result.secure_url,
+      learn: populatedLearn,
+      message: "Successfully created",
+    });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 };
 
-const user = await User.findById(userId);
-if (!user) {
-  return res.status(404).json({ message: 'User not found' });
-}
-
-
-
-  
-  
-  const learn = new Learn({
-    text:text,
-    file:att,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    userId: req.userId,
-  });
-
-  await learn.save();
-
-  res.status(201).json({
-    learn,
-    message: "succsessfully created",
-  });
-};
 
 // Update Learn //
 
@@ -3221,8 +4413,14 @@ if (comment.userId.toString() !== userId) {
 
   await notification.save();
 
+  pusher.trigger('learn-channel', 'like-learn-comment', {
+    learnId,
+    userId,
+    message: `${user.firstName} ${user.lastName} liked yoursSSSSsss comment.`,
+  });
+
   // Emit socket event to the article owner
-  io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
+  // io.to(learn.userId.toString()).emit('notification', notification,{ learnId, userId });
 }
 
 
@@ -3328,6 +4526,8 @@ export const getLibary = async (req, res) => {
       },
     });
 
+    console.log(response,'response')
+
     const saveResults = response.data; // Assuming the API response contains an array of search results
 
     // Save search results in MongoDB
@@ -3351,49 +4551,80 @@ export const getLibary = async (req, res) => {
   
 
 
+export const getAllapi = async(req,res)=>{
+  try {
+    const { page = 1, limit = 10 } = req.query; // Default to page 1, limit 10
 
-// export const fetchAndSaveJobs = async (req, res) => {
-//   const searchTerm = req.query.term;
-//   const location = req.query.location;
+    const skip = (page - 1) * limit;
 
-//   try {
-//     const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
-//       params: {
-//         query: searchTerm,
-//         location: location,
-//         page: '1',
-//         num_pages: '1',
-//       },
-//       headers: {
-//         'X-RapidAPI-Key': '622e902bd8msh1139c0b10a4db77p1b98c8jsn7ff60b995272',
-//         'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
-//       },
+    // Get total count of documents
+    const totalItems = await JobApi.countDocuments();
 
-//     });
+    // Fetch paginated data
+    const jobapi = await JobApi.find()
+    .sort({ job_posted_at_datetime_utc: -1 }) 
+      .skip(skip)
+      .limit(Number(limit));
 
-//     const jobs = response.data.data.map(job => ({
-//       job_id: job.id,
-//       job_title: job.job_title,
-//       employer_name: job.employer_name,
-//       employer_logo: job.employer_logo,
-//       job_city: job.job_city,
-//       job_country: job.job_country,
-//       job_posted_at_datetime_utc: job.job_posted_at_datetime_utc,
-//       job_max_salary: job.job_max_salary,
-//       job_publisher: job.job_publisher,
-//       job_employment_type: job.job_employment_type,
-//       job_description: job.job_description,
-//       job_apply_link: job.job_apply_link,
-//     }));
+    const totalPages = Math.ceil(totalItems / limit);
 
-//     await JobApi.insertMany(jobs);
+    res.status(200).json({
+      jobapi,
+      totalItems,
+      totalPages,
+      currentPage: Number(page),
+    });
+  } catch (error) {
+    console.error('Error fetching articles:', error);
+    res.status(500).json({ message: 'An error occurred while fetching the articles.', error: error.message });
+  }
 
-//     res.status(200).json({ message: 'Jobs fetched and saved successfully'});
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: 'Error fetching and saving jobs', error });
-//   }
-// };
+}
+
+
+
+export const fetchAndSaveJobs = async (req, res) => {
+  const searchTerm = req.query.term;
+  const location = req.query.location;
+
+  try {
+    const response = await axios.get('https://jsearch.p.rapidapi.com/search', {
+      params: {
+        query: searchTerm,
+        location: location,
+        page: '1',
+        num_pages: '1',
+      },
+      headers: {
+        'X-RapidAPI-Key': 'e98e90d379mshe0700d7a1db3f40p17f022jsn8da99719078c',
+        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
+      },
+
+    });
+
+    const jobs = response.data.data.map(job => ({
+      job_id: job.id,
+      job_title: job.job_title,
+      employer_name: job.employer_name,
+      employer_logo: job.employer_logo,
+      job_city: job.job_city,
+      job_country: job.job_country,
+      job_posted_at_datetime_utc: job.job_posted_at_datetime_utc,
+      job_max_salary: job.job_max_salary,
+      job_publisher: job.job_publisher,
+      job_employment_type: job.job_employment_type,
+      job_description: job.job_description,
+      job_apply_link: job.job_apply_link,
+    }));
+
+    await JobApi.insertMany(jobs);
+
+    res.status(200).json({ message: 'Jobs fetched and saved successfully',jobs});
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching and saving jobs', error });
+  }
+};
 
 export const getAllApiJobs = async (req, res) => {
   try {
@@ -3408,15 +4639,21 @@ export const getAllApiJobs = async (req, res) => {
 
 
 export const searchJobsInDB = async (req, res) => {
-  const { term, location } = req.query;
+  const { term, location , country } = req.query;
 
   try {
     const query = {
       job_title: { $regex: term, $options: 'i' },
+      // job_country: { $regex: country, $options: 'i' },
     };
 
     if (location) {
       query.job_city = { $regex: location, $options: 'i' };
+    }
+
+    
+    if (country) {
+      query.job_country = { $regex: country, $options: 'i' };
     }
 
     console.log('Query:', JSON.stringify(query, null, 2)); // Log the query for debugging
@@ -3464,7 +4701,7 @@ export const getRapidjobs  = async(req,res)=>{
     params: {
       query: searchTerm,
       location: location,
-          page: '1',
+          page: '20',
           num_pages: '20'
      
     },

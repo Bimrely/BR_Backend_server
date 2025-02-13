@@ -45,10 +45,15 @@ const ReplySchema = new Schema({
 const Reply = mongoose.model('Reply', ReplySchema);
 
 const CommentSchema = new Schema({
-    userId: {
+    commentAuthor: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "Profile",
     },
+    userId:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref:'User',
+      
+  },
     text: String,
     firstName: String,
     lastName: String,
@@ -63,6 +68,15 @@ const CommentSchema = new Schema({
       ],
     file:filesSchema,
     replies: [ReplySchema],
+
+ mentions: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Profile",  // References the profiles of mentioned users
+    },
+  ],
+  
+
     added: { type: Date, default: Date.now }
 });
 
@@ -70,10 +84,24 @@ const ArticleSchema = new Schema({
   firstName:String,
   lastName:String,
     text: String,
-    file: filesSchema,
+    // file: filesSchema,
+    file:{
+      type: String, // Store the URL or file path of the profile picture
+      default: '',
+
+    },
+    createdAt: { type: Date, default: Date.now },
+    author: { 
+      type: Schema.Types.ObjectId, 
+      ref: 'Profile'  // Reference the Profile model, not User
+    },
     likes: { type: Number, default: 0 },
     shares: { type: Number, default: 0 },
     comments: [CommentSchema],
+    profilePicture: {
+      type: String, // Store the URL or file path of the profile picture
+      default: '', // You can set a default profile picture if you want
+    },
     
     likedBy: [
         {

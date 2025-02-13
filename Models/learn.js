@@ -14,13 +14,17 @@ export const files = new Schema({
 
 
 const CommentSchema = new Schema({
-  userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+  commentAuthor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Profile",
+},
+   userId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "Profile"  // Reference to the Profile model, not User
   },
   text: String,
-  firstName: String,
-  lastName: String,
+  // firstName: String,
+  // lastName: String,
   likes: { type: Number, default: 0 },
   // likedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   likedBy: [
@@ -28,6 +32,12 @@ const CommentSchema = new Schema({
       userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         firstName: String,
         lastName: String,
+      },
+    ],
+    mentions: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Profile",  // References the profiles of mentioned users
       },
     ],
 
@@ -44,11 +54,20 @@ const LearnSchema = new Schema({
     text:String,
     firstName:String,
     lastName:String,
-    file:files,
+
     likes: { type: Number, default: 0 },
     shares: { type: Number, default: 0 },
     comments: [CommentSchema],
+    file:{
+      type: String, // Store the URL or file path of the profile picture
+      default: '',
 
+    },
+    createdAt: { type: Date, default: Date.now },
+    author: { 
+      type: Schema.Types.ObjectId, 
+      ref: 'Profile'  // Reference the Profile model, not User
+    },
     videoId:String,
     title:String,
    

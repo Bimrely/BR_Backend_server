@@ -13,12 +13,12 @@ import {User} from '../Models/userModel.js';
   passport.use(
   new LinkedInStrategy(
     {
-      clientID: '78s3dg5r42x8ul' ,
-      clientSecret:'1ipi2vqDIqVsvkv1',
-      callbackURL: 'http://localhost:7000/auth/linkedin/callback',
-      scope: ['r_emailaddress', 'r_liteprofile'],
+      clientID: '786qjd4hbvjdov' ,
+      clientSecret:'WPL_AP1.yn3cBc7FHReVqXtj.dYTxcA==',
+      callbackURL: 'http://localhost:5000/auth/linkedin/callback',
+      scope: ['openid','email', 'profile'],
       state: true,
-      accessToken:"AQUOkZ1AeQ0ynKwFRQecpz-2OxG8-J_H7OMZ4jinRvlsm7U6d6ifWabscLvPOqqHXvFPIir6u8qUA2BWqx_QXqNI0xXAbXWg9VDIt_ZGrwfmTDl7VgXkE-j-BCewVS7OMXGFWIFVbyQdw3DNSd3EZhkMUYrnm0oOcZKVpRQPXXxTaUDPvy28Sn-KXFSvqmaNyK1FwRlDIgPB9aR6kh2WvWG4Jp6I7hQIpAO9U85DvHaZIB7hB3KpbEdelgfAqO9lOsIrONNTBofLpd-To8LiagXOdeWnCOoPqKn_v35AljJ9DxfZAv-ydDEmXide83qTTZiW-oqFlh-l2v0mIMmLcuwv6YEgbg"
+      accessToken: 'AQU9x7K1QT4HhWtEil2947-gfzDLni36VEhxbGdHSI-q-bUPZSKM7drbxdFhdXQ7WbR8doQlDnkh7FHLjqahKcOfAab9NblOhKmfYAEJr1WfBUBQFVKwJvr7Dcn_lJEgeDQxWpC2HeR2SAIdS60sLkE3-PdmCB6pXfG9i3wZ9s614nkbDa6n3WS-cH0jFDD0xhqH8P8yw_b_VLoEMiAq8SWnjrkCkDk1PrMcB4xxHsmqg3udw5HS9O5cwOAZa-HIbLBGjzFA3TRen1DRYKEuSQjTtM029NlWBJZWabfmCz5APuO8RQXb5x-ZTNmWkoKEZybkVsu6DM1UFf8fS8njVX-Te9yBUA'
     },
 
 

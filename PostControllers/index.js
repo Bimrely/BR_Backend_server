@@ -1,5 +1,5 @@
 import { Router } from "express";
-// import multer from "multer";
+import multer from "multer";
 import {
   getallArticle,
   createArticle,
@@ -67,23 +67,58 @@ import {
   searchJobsInDB,
   getJobSuggestions,
   getLocationSuggestions,
-  getRapidjobs
+  getRapidjobs,
+  fetchAndSaveJobs,
+  uploadProfilePic,
+  getAllapi
 
 
 
 } from "../PostControllers/postController.js";
 
 import passport from '../middleware/linkedInAuth.js';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import cloudinary from '../cloudinary/cloudinaryConfig.js';
 
 import { auth } from "../middleware/auth.js";
+import {authenticateApiKey } from "../middleware/apikeyAuth.js";
 import path from "path";
 import { get } from "http";
 
 const router = Router();
 
+
+
+
+
+
+
+const cloudinaryStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'uploads', // Folder where images will be stored in Cloudinary
+    allowed_formats: ['jpg', 'jpeg', 'png', 'mp4','mov'],
+    resource_type: 'auto', // Allowed file formats
+  },
+});
+
+
+
+
+const upload = multer({ storage: cloudinaryStorage });
+
+
+
+
+
+
+
+
+
+
 // const storage = multer.diskStorage({
 //   destination: function (req, file, cb) {
-//     cb(null, path.join("../bim_copy/src/images"));
+//     cb(null, path.join("../../client/WIP-Frontend/src/images"));
 //   },
 //   filename: function (req, file, cb) {
 //     cb(null, file.originalname);
@@ -132,16 +167,21 @@ const router = Router();
 
 // Articles Routes //
 
+
 router.get("/get-article",auth,getallArticle);
-router.post("/create-article",auth, createArticle);
-router.put("/update-article/:id",auth,updateArticle);
+router.post("/create-article",auth,upload.single("file"), createArticle);
+router.put("/update-article/:id",auth,upload.single("file"),updateArticle);
 router.delete("/delete-article/:id",auth, deleteArticle);
+// router.get("/get-article",auth,getallArticle);
+// router.post("/create-article",auth,createArticle);
+// router.put("/update-article/:id",auth,updateArticle);
+// router.delete("/delete-article/:id",auth, deleteArticle);
 
 // Jobs Routes //
 
 router.get("/jobs", auth, getallJob);
-router.post("/create-job",auth,createJob);
-router.put("/update-job/:id", auth, updateJob);
+router.post("/create-job",auth,upload.single("file"),createJob);
+router.put("/update-job/:id", auth, upload.single("file"),updateJob);
 router.delete("/delete-job/:id", auth, deleteJob);
 
 
@@ -157,13 +197,26 @@ router.delete('/profiles/:userId/shared-jobs/:jobId', auth, deleteSharedJob);
 
 
 
+router.put(
+  "/profile/upload-picture/:id",
+  upload.single("profilePicture"), // This expects a field named "profilePicture"
+  uploadProfilePic,auth
+);
+
+
+
+
+
+
+
+// router.post('/profile/upload-picture/:id',auth,upload.single("file"),uploadProfilePic)
 
 
 
 
 //chatgtp-tubo3.5 route
 
-router.post('/run-prompt', handleRunPrompt);
+router.post('/run-prompt',authenticateApiKey, handleRunPrompt);
 
 
 
@@ -176,11 +229,36 @@ router.post('/run-prompt', handleRunPrompt);
 router.get("/issues", auth, getallIssue);
 router.post(
   "/create-issue",
-  auth,
+  auth, upload.single("file"),
   createIssue);
-router.put("/update-issue/:id", auth, updateIssue);
+router.put("/update-issue/:id", auth,  upload.single("file"), updateIssue);
 router.delete("/delete-issue/:id",auth, deleteIssue);
 
+
+// Like an Issue
+
+router.put('/issues/:issueId',auth, likeIssue);
+
+router.put('/issues/:issueId/comments/:commentId/like',auth,likeCommentIssue);
+
+
+router.delete('/profiles/:userId/shared-issues/:issueId', auth, deleteSharedIssue);
+
+// Share an Issue
+router.post('/issues/:issueId/share', auth, shareIssue);
+
+router.delete('/issues/:issueId/:commentId/delete',auth,deleteCommentIssue);
+
+
+
+// update comment //
+
+router.put('/issues/:issueId/:commentId/update',auth,updateCommentIssue);
+
+
+
+// Comment on an Issue
+router.post('/issues/:issueId/comment',auth, commentIssue);
 
 
 
@@ -200,10 +278,10 @@ router.delete("/delete-issue/:id",auth, deleteIssue);
 router.get("/learn", auth, getallLearn);
 router.post(
   "/create-learn",
-  auth,
+  auth,upload.single("file"),
   createLearn
 );
-router.put("/update-learn/:id", auth, updateLearn);
+router.put("/update-learn/:id", auth, upload.single("file"),updateLearn);
 
 router.delete("/delete-learn/:id", auth, deleteLearn);
 
@@ -314,31 +392,6 @@ router.post('/articles/comments/:commentId/:articleId/replies',auth,replyComment
 router.post('/articles/:articleId/comments/:commentId/replies/:replyId',auth, nestedReply);
 
 
-// Like an Issue
-
-router.put('/issues/:issueId',auth, likeIssue);
-
-router.put('/issues/:issueId/comments/:commentId/like',auth,likeCommentIssue);
-
-
-router.delete('/profiles/:userId/shared-issues/:issueId', auth, deleteSharedIssue);
-
-// Share an Issue
-router.post('/issues/:issueId/share', auth, shareIssue);
-
-router.delete('/issues/:issueId/:commentId/delete',auth,deleteCommentIssue);
-
-
-
-// update comment //
-
-router.put('/issues/:issueId/:commentId/update',auth,updateCommentIssue);
-
-
-
-// Comment on an Issue
-router.post('/issues/:issueId/comment',auth, commentIssue);
-
 
 
 // Like an Learn
@@ -346,10 +399,11 @@ router.post('/issues/:issueId/comment',auth, commentIssue);
 
 
 
+router.get('/getJobs-api' ,auth,getAllapi);
 
 // get youtube videos //
 
-router.get('/videos' ,auth,Videos);
+router.get('/videos' ,Videos);
 
 router.get('/saveYouTubeData' ,auth,saveYouTubeData);
 
@@ -366,7 +420,8 @@ router.post('/search-learn/:query' ,auth, searchLearnData);
 router.post('/search-libary/:query' , auth, searchLibaryData);
 
 // Search for jobs //
-router.get('/search-job/:term' , auth,getRapidjobs);
+// router.get('/search-job/:term' , auth,getRapidjobs);
+router.get('/search-job/:term' ,fetchAndSaveJobs);
 
 router.get('/job-suggestions', getJobSuggestions); // New route for job suggestions
 

@@ -22,12 +22,24 @@ const commentSchema = new mongoose.Schema({
   job:{type:mongoose.Schema.Types.ObjectId,ref:'Job'},
   text: {type:String},
   file: filesSchema,
+  commentAuthor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Profile",
+},
   createdAt: { type: Date, default: Date.now },
   userId:{
     type: mongoose.Schema.Types.ObjectId,
     ref:'User',
     
-}
+},
+mentions: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Profile",  // References the profiles of mentioned users
+  },
+],
+
+
 
 });
 

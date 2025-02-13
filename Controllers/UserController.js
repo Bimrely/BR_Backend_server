@@ -6,9 +6,9 @@ import { Profile } from "../Models/userprofile.js";
 import crypto from 'crypto';
 import nodemailer from 'nodemailer'
 import { Article } from "../Models/article.js";
-
-
-
+import { Feedback } from "../Models/feedback.js";
+import axios from 'axios';
+import { Resend } from 'resend';
 
      
            // Sign Up Function Start //
@@ -162,30 +162,121 @@ export const SignIn = async(req, res, next)=>{
 
 
 
+// Backend: getProfileByUserId
+export const getProfileByUserId = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const userProfile = await Profile.findOne({ userId })
+    .populate({
+      path: 'sharedArticles',
+      populate: { path: 'author', select: 'firstName lastName profilePicture' }
+    })
+    .populate({
+      path: 'sharedIssues',
+      populate: { path: 'author', select: 'firstName lastName profilePicture' }
+    })
+    .populate({
+      path: 'sharedJobs',
+      populate: { path: 'author', select: 'firstName lastName profilePicture' }
+    })
+    .populate({
+      path: 'sharedLearns',
+      populate: { path: 'author', select: 'firstName lastName profilePicture' }
+    });
+
+    if (!userProfile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    res.status(200).json({ userProfile });
+  } catch (error) {
+    console.error('Error retrieving user profile:', error);
+    res.status(500).json({ message: 'Error retrieving user profile', error });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+export const getProfile = async (req, res) => {
+  const userId = req.userId; // Assuming you're using authentication middleware and user ID is available in req.userId
+
+  try {
+    const userProfile = await Profile.findOne({ userId })
+      .populate({
+        path: 'sharedArticles',
+        populate: { path: 'author', select: 'firstName lastName profilePicture' }
+      })
+      .populate({
+        path: 'sharedIssues',
+        populate: { path: 'author', select: 'firstName lastName profilePicture' }
+      })
+      .populate({
+        path: 'sharedJobs',
+        populate: { path: 'author', select: 'firstName lastName profilePicture' }
+      })
+      .populate({
+        path: 'sharedLearns',
+        populate: { path: 'author', select: 'firstName lastName profilePicture' }
+      });
+
+    if (!userProfile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    res.status(200).json({ userProfile });
+  } catch (error) {
+    console.error('Error retrieving user profile:', error);
+    res.status(500).json({ message: 'Error retrieving user profile', error });
+  }
+};
+
+
+
+// Fetch all profiles - API Endpoint
+export const getAllProfiles = async (req, res) => {
+  try {
+    // Fetch only necessary fields for mention functionality
+    const profiles = await Profile.find({}, 'firstName lastName profilePicture userId');
+    res.status(200).json({ profiles });
+  } catch (error) {
+    console.error('Error retrieving profiles:', error);
+    res.status(500).json({ message: 'Error retrieving profiles', error });
+  }
+};
 
 
 
   // Get user profile By Id//
-  export const getProfile = async (req, res) => {
-    const userId = req.userId; // Assuming you're using authentication middleware and user ID is available in req.user.id
+//   export const getProfile = async (req, res) => {
+//     const userId = req.userId; // Assuming you're using authentication middleware and user ID is available in req.user.id
 
-    try {
-        const userProfile = await Profile.findOne({ userId })  
-        .populate('sharedArticles')
-        .populate('sharedIssues')
-        .populate('sharedJobs')
-        .populate('sharedLearns')
+//     try {
+//         const userProfile = await Profile.findOne({ userId })  
+//         .populate('sharedArticles')
+//         .populate('sharedIssues')
+//         .populate('sharedJobs')
+//         .populate('sharedLearns')
+       
+//         if (!userProfile) {
+//             return res.status(404).json({ message: 'Profile not found' });
+//         }
 
-        if (!userProfile) {
-            return res.status(404).json({ message: 'Profile not found' });
-        }
-
-        res.status(200).json({ userProfile
-         });
-    } catch (error) {
-        res.status(500).json({ message: 'Error retrieving user profile', error });
-    }
-};
+//         res.status(200).json({ userProfile
+//          });
+//     } catch (error) {
+//         res.status(500).json({ message: 'Error retrieving user profile', error });
+//     }
+// };
 
   // export const getProfile = async(req,res)=>{
 
@@ -340,22 +431,22 @@ export const editUserProfile = async (req, res) => {
     }, { new: true });
     
     // await Article.updateMany({ userId }, { $set: { firstName, lastName, 'likedBy.$[elem].firstName': firstName, 'likedBy.$[elem].lastName': lastName } }, { arrayFilters: [{ "elem.userId": userId }] });
-    await Article.updateMany({ 'likedBy.userId': userId }, { $set: { 'likedBy.$.firstName': firstName, 'likedBy.$.lastName': lastName } });
-    await Article.updateMany({ userId }, { $set: { firstName, lastName } });
-    // await Article.updateMany({ 'comments.userId': userId }, { $set: { 'comments.$.firstName': firstName, 'comments.$.lastName': lastName } });
-    await Article.updateMany({ 'comments.userId': userId }, { $set: { 'comments.$.firstName': firstName, 'comments.$.lastName': lastName, 'comments.$.likedBy.$[elem].firstName': firstName, 'comments.$.likedBy.$[elem].lastName': lastName } }, { arrayFilters: [{ "elem.userId": userId }] });
-    await Article.updateMany({ 'comments.replies.userId': userId }, { $set: { 'comments.$[commentElem].replies.$[replyElem].firstName': firstName, 'comments.$[commentElem].replies.$[replyElem].lastName': lastName } }, { arrayFilters: [{ "commentElem.userId": userId }, { "replyElem.userId": userId }] });
+    // await Article.updateMany({ 'likedBy.userId': userId }, { $set: { 'likedBy.$.firstName': firstName, 'likedBy.$.lastName': lastName } });
+    // await Article.updateMany({ userId }, { $set: { firstName, lastName } });
+    // // await Article.updateMany({ 'comments.userId': userId }, { $set: { 'comments.$.firstName': firstName, 'comments.$.lastName': lastName } });
+    // await Article.updateMany({ 'comments.userId': userId }, { $set: { 'comments.$.firstName': firstName, 'comments.$.lastName': lastName, 'comments.$.likedBy.$[elem].firstName': firstName, 'comments.$.likedBy.$[elem].lastName': lastName } }, { arrayFilters: [{ "elem.userId": userId }] });
+    // await Article.updateMany({ 'comments.replies.userId': userId }, { $set: { 'comments.$[commentElem].replies.$[replyElem].firstName': firstName, 'comments.$[commentElem].replies.$[replyElem].lastName': lastName } }, { arrayFilters: [{ "commentElem.userId": userId }, { "replyElem.userId": userId }] });
     
-    await Article.updateMany(
-      { 'comments.replies.userId': userId },
-      {
-        $set: {
-          'comments.$[commentElem].replies.$[replyElem].likedBy.$[likedByElem].firstName': firstName,
-          'comments.$[commentElem].replies.$[replyElem].likedBy.$[likedByElem].lastName': lastName
-        }
-      },
-      { arrayFilters: [{ 'commentElem.replies.userId': userId }, { 'replyElem.userId': userId }, { 'likedByElem.userId': userId }] }
-    );
+    // await Article.updateMany(
+    //   { 'comments.replies.userId': userId },
+    //   {
+    //     $set: {
+    //       'comments.$[commentElem].replies.$[replyElem].likedBy.$[likedByElem].firstName': firstName,
+    //       'comments.$[commentElem].replies.$[replyElem].likedBy.$[likedByElem].lastName': lastName
+    //     }
+    //   },
+    //   { arrayFilters: [{ 'commentElem.replies.userId': userId }, { 'replyElem.userId': userId }, { 'likedByElem.userId': userId }] }
+    // );
 
     if (!updatedProfile) {
       return res.status(404).json({ message: 'User profile not found' });
@@ -433,14 +524,117 @@ export const editUserProfile = async (req, res) => {
 
 
 
+export const changePassword = async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const userId = req.userId;  // Assuming auth middleware sets `req.userId`
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+  console.log(user.password)
+    // Check if old password matches
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Incorrect current password' });
+
+    // Hash the new password and update the user's password
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating password' });
+  }
+};
+
+
+
+
+
 const transporter = nodemailer.createTransport({
   host: "sandbox.smtp.mailtrap.io",
   port: 2525,
   auth: {
-    user: "bb5814413c0572",
-    pass: "11264f00bc7694"
+    user: "28dd11685e37e7",
+    pass: "e501c0cc633f3f"
   }
 });
+
+
+
+
+
+const resend = new Resend('re_CD2UZ1p2_3zs51dtx3PH64jdJ2rg7MZQK'); // Set your Resend API key in environment variables
+
+// Create the submitFeedback function
+export const submitFeedback = async (req, res) => {
+  try {
+    const { feedbackText, rating } = req.body;
+    const userId = req.userId;  // Retrieved from auth middleware
+
+    // Save feedback to the database
+    const feedback = new Feedback({ userId, feedbackText, rating });
+    await feedback.save();
+
+    // Set up the email data
+    (async function() {
+      try {
+        const data = await resend.emails.send({
+          from: 'Acme <onboarding@resend.dev>',
+          to: ['delivered@resend.dev'],
+          subject: 'Hello World',
+          text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`,
+        
+        });
+    
+        console.log(data);
+      } catch (error) {
+        console.error(error);
+      }
+    })();
+
+    // Send the email
+    // await resend.sendEmail(emailData);
+    res.status(201).json({ message: 'Feedback submitted successfully and email sent.' });
+  } catch (error) {
+    console.error('Error submitting feedback or sending email:', error);
+    res.status(500).json({ message: 'An error occurred while submitting feedback.' });
+  }
+};
+
+
+
+// export const submitFeedback = async (req, res) => {
+//   try {
+//     const { feedbackText, rating } = req.body;
+//     const userId = req.userId;  // Retrieved from auth middleware
+
+//     // Save feedback to the database
+//     const feedback = new Feedback({ userId, feedbackText, rating });
+//     await feedback.save();
+
+//     // Set up the email data
+//     const mailOptions = {
+//       from: '"YourApp Feedback" <no-reply@yourapp.com>', // Valid "from" email
+//       to: "rafay.burraq@gmail.com",
+//       subject: 'New User Feedback Received',
+//       text: `New feedback received from user ID: ${userId}\n\nFeedback: ${feedbackText}\nRating: ${rating}/5`
+//     };
+//     // Send the email
+//     transporter.sendMail(mailOptions, (error, info) => {
+//       if (error) {
+//         console.error('Error sending email:', error);
+//       } else {
+//         console.log('Email sent:', info.response);
+//       }
+//     });
+
+//     res.status(201).json({ message: 'Feedback submitted successfully.' });
+//   } catch (error) {
+//     console.error('Error submitting feedback:', error);
+//     res.status(500).json({ message: 'An error occurred while submitting feedback.' });
+//   }
+// };
+
 
 
 
@@ -533,3 +727,5 @@ export const setPassword =  async(req,res)=>{
 
 
 }
+
+

@@ -15,6 +15,10 @@ export const files = new Schema({
 
 
 const CommentSchema = new Schema({
+  commentAuthor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Profile",
+},
   userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -24,6 +28,13 @@ const CommentSchema = new Schema({
   lastName: String,
   likes: { type: Number, default: 0 },
   // likedBy: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  
+ mentions: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Profile",  // References the profiles of mentioned users
+  },
+],
   likedBy: [
       {
       userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -46,11 +57,28 @@ const JobSchema = new Schema({
   firstName:String,
   lastName:String,
     text:String,
-    file:files,
+    file:{
+      type: String, // Store the URL or file path of the profile picture
+      default: '',
+
+    },
+
+
+    createdAt: { type: Date, default: Date.now },
+    author: { 
+      type: Schema.Types.ObjectId, 
+      ref: 'Profile'  // Reference the Profile model, not User
+    },
+
     likes: { type: Number, default: 0 },
     shares: { type: Number, default: 0 },
     comments: [CommentSchema],
 
+    profilePicture: {
+      type: String, // Store the URL or file path of the profile picture
+      default: '', // You can set a default profile picture if you want
+    },
+    
     likedBy: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
